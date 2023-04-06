@@ -75,12 +75,13 @@ Both of these examples are pulled directly from the simple example app included 
 
 Currently, the C++ code uses cmake and the Java code uses gradle.  Eventually, the build systems will 
 be unified, probably to gradle.  Development is done using CLion for C++ code and IntelliJ IDEA for 
-Java code.  The version of cmake that comes with CLion was used for building.
+Java code.  
 
-First the Java code must be compiled.  You shouldn't need an IDE, just execute 
-```bash
-# ./gradlew jar
-```
-from the `java` directory.  It should create the file `main/build/libs/libjni++.jar`.  Then build and 
-`sample_app` either using the CLion IDE or from cmake on the command line.  More detailed instructions to come.
+Check the README.md file in the `java` and `native` directories for information on how to build each.
+
+## Examples
+
+There are a couple of examples under `native/examples` to illustrate how libjni++ can be used and
+experiment with either calling libjni++ code from other languages or calling into other JVM 
+languages.  It is a work-in-progress.
 

@@ -90,7 +90,7 @@ struct ToCppConverter {
 };
 template <typename CppReturnType>
 struct ToCppConverter<SwigWrapper<CppReturnType>> {
-	template <>
+	template <typename CppType>
 	static CppReturnType* convertToCpp(jobject val) {
 		return getSwigPointer<CppReturnType>(val);
 	}
@@ -277,7 +277,7 @@ struct Actualizer {
 };
 
 //
-// Default implementation which just passes the value through unchanged.  Used for everything other than jobject/jlocal/jglobal.
+// Default implementation which just passes the value through unchanged.  Used for everything other than jobject/jlocal/jglobal/jarray/jobjectarray.
 //
 template <typename DeclaredReturnType>
 inline typename Actualized<DeclaredReturnType>::type Actualizer<DeclaredReturnType>::passThroughOrConvert(typename Actualized<DeclaredReturnType>::type returnValue, JniLocalReferenceScope& refs) {

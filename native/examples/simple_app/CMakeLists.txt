@@ -10,14 +10,26 @@
 # This code is licensed under the 2-clause BSD license (see LICENSE.md for details)
 #
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 project(jni++_simple_app)
 
 find_package(Java REQUIRED)
 find_package(JNI)
 
-include_directories("../../libjni++")
+get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
+
+include_directories("${lib_src_dir}")
 include_directories(${JNI_INCLUDE_DIRS})
 
 add_executable(simpleapp SimpleApp.cpp)
-target_link_libraries(simpleapp jni++ ${JNI_LIBRARIES})
+
+target_link_libraries(
+        simpleapp
+        jni++_static
+        ${JAVA_JVM_LIBRARY}
+#        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
+)
+
+set(CMAKE_INSTALL_RPATH ${JAVA_JVM_DIRECTORY})
+
+install(TARGETS simpleapp)

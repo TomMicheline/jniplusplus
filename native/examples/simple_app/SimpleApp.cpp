@@ -15,18 +15,31 @@
 
 #include <jni.h>
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <unistd.h>
 
 using namespace jni_pp;
 
-int main()
+int main(int argc, const char **argv)
 {
     setMinimumLogLevel(jni_pp::LOG_WARN);
 
-    auto worked = createVM(JNI_VERSION_20, "../../../../java/main/build/libs/libjni++.jar");
+    std::string path("../../../../java/main/build/libs/libjni++.jar");
+
+    if (argc > 1) {
+        path = argv[1];
+    }
+
+    std::ifstream f(path.c_str());
+    if (!f.good()) {
+        std::cerr << "Error: Can't find jar file '" << path << "'.  You can specify the full path of the libjni++.jar file as the first command line argument" << std::endl;
+        return -1;
+    }
+
+    auto worked = createVM(JNI_VERSION_10, path);
     if (!worked) {
-        std::cerr << "Failed to create Java VM!" << std::endl;
+        std::cerr << "Error: Failed to create Java VM!" << std::endl;
         return -1;
     }
 

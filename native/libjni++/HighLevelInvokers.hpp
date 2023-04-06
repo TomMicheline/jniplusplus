@@ -64,7 +64,7 @@ typename Actualized<CppReturnType>::type HighLevelInvoker<CppReturnType>::invoke
 
 template <>
 template <typename TargetType>
-inline void HighLevelInvoker<void>::invoke(TargetType target, jmethodID methodID, vector<jvalue>& args, JniLocalReferenceScope& __unused refs) {
+inline void HighLevelInvoker<void>::invoke(TargetType target, jmethodID methodID, vector<jvalue>& args, JniLocalReferenceScope& refs) {
 	LowLevelInvoker<void>::invoke(target, methodID, args);
 	checkForExceptions();
 }

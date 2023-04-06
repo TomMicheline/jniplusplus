@@ -22,7 +22,7 @@ char JniLogger::getLevelIndicator(const LogPriority &level) {
         case LOG_DEBUG:   return 'D';
         case LOG_WARN:    return 'W';
         case LOG_ERROR:   return 'E';
-        case LOG_DISABLE: return 'X';
+        default: return 'X';
     }
 }
 

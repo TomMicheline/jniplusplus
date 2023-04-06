@@ -17,6 +17,7 @@
 #include <vector>
 #include <set>
 #include <cassert>
+#include <condition_variable>
 
 #include "JniLoggers.hpp"
 

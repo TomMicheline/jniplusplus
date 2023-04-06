@@ -33,7 +33,7 @@
 
 # IDE
 .idea
-cmake-build-debug
+cmake-build-*
 .gradle
 build
 *.iml

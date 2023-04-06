@@ -13,9 +13,10 @@
 #include <climits>
 #include <map>
 #include <utility>
+#include <algorithm>
 
-#include "JniUtilities.hpp"
 #include "JniPlusPlus.hpp"
+#include "JniUtilities.hpp"
 
 #pragma GCC diagnostic ignored "-Wformat-security"
 
@@ -124,7 +125,7 @@ std::mutex javaVM_mutex;
 bool createVM(jint version, const std::string& classPath)
 {
     {
-        std::lock_guard<std::mutex>  __unused lock(javaVM_mutex);
+        std::lock_guard<std::mutex>  lock(javaVM_mutex);
 
         JavaVM *_vm;
         JNIEnv * _env;
@@ -160,7 +161,7 @@ bool createVM(jint version, const std::string& classPath)
 
 void destroyVM()
 {
-    std::lock_guard<std::mutex>  __unused lock(javaVM_mutex);
+    std::lock_guard<std::mutex>  lock(javaVM_mutex);
     if (GlobalVM != nullptr) {
         GlobalVM->DestroyJavaVM();
         GlobalVM = nullptr;
@@ -170,7 +171,7 @@ void destroyVM()
 
 void setVM(JavaVM *vm) {
     {
-        std::lock_guard<std::mutex>  __unused lock(javaVM_mutex);
+        std::lock_guard<std::mutex>  lock(javaVM_mutex);
     	GlobalVM = vm;
     }
     javaVM_cv.notify_all();
@@ -267,7 +268,7 @@ void log_print(int level, const char *fmt, ...) {
 	va_end(argptr);
 }
 
-void sendExceptionEvent(jthrowable __unused jt) {
+void sendExceptionEvent(jthrowable jt) {
     // TODO: make pluggable crash reporter system so it can be sent to places like crashlytics
 }
 
@@ -287,7 +288,7 @@ jclass getClass(const std::string &name) {
         return cls;
     }
 
-    JniLocalReferenceScope  __unused refs; // Clean up any local refs created in this method
+    JniLocalReferenceScope  refs; // Clean up any local refs created in this method
 
     std::string classDescriptor;
     std::replace_copy(name.begin(), name.end(), std::back_inserter<std::string>(classDescriptor), '.', '/');
@@ -305,8 +306,8 @@ jclass getClass(const std::string &name) {
 //
 // get the MethodInfo for this Method (InstanceMethod, StaticMethod, or Constructor)
 //
-MethodInfo  __unused *getMethodInfo(const std::string& className, const std::string& methodName, const std::string& signature, bool isStatic, int numParameters) {
-    JniLocalReferenceScope __unused refs;  // Cleans up any local references created in this method
+MethodInfo  *getMethodInfo(const std::string& className, const std::string& methodName, const std::string& signature, bool isStatic, int numParameters) {
+    JniLocalReferenceScope refs;  // Cleans up any local references created in this method
 
     std::lock_guard<std::recursive_mutex> lk(cacheMutex);
     std::string key = className + "." + methodName;
@@ -376,9 +377,9 @@ MethodInfo  __unused *getMethodInfo(const std::string& className, const std::str
 //
 // get the FieldInfo for this Field (InstanceField, StaticField, or Constructor)
 //
-FieldInfo  __unused *getFieldInfo(const std::string& className, const std::string& fieldName, const std::string& signature, bool isStatic) {
+FieldInfo  *getFieldInfo(const std::string& className, const std::string& fieldName, const std::string& signature, bool isStatic) {
 
-    JniLocalReferenceScope __unused refs;  // Cleans up any local references created in this field
+    JniLocalReferenceScope refs;  // Cleans up any local references created in this field
 
     std::lock_guard<std::recursive_mutex> lk(cacheMutex);
     std::string key = className + "." + fieldName;
@@ -656,7 +657,7 @@ using namespace jni_pp;
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "UnusedParameter"
 
-JNIEXPORT jint JNICALL __unused JNI_OnLoad(JavaVM *vm, void __unused *reserved) {
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 	log_print(LOG_DEBUG, "Native: JNI_OnLoad called.  Caching VM.");
 	jni_pp::setVM(vm);
     initializeEnvironment();

@@ -11,8 +11,11 @@
 #
 
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 project(libjni++)
+
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../build" CACHE PATH "..." FORCE)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(Java REQUIRED)
 
@@ -33,18 +36,44 @@ if (JNI_FOUND)
     message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 endif()
 
+get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
+
 include_directories(.)
 include_directories(${JNI_INCLUDE_DIRS})
 
-add_library(jni++
-        SHARED
+set (libheaders
         Converters.hpp
         HighLevelInvokers.hpp
         JniPlusPlus.hpp
-        JniUtilities.cpp
         JniUtilities.hpp
         LowLevelInvokers.hpp
-        JniLoggers.cpp
-        JniLoggers.hpp)
+        JniLoggers.hpp
+        )
 
-target_link_libraries(jni++ ${JNI_LIBRARIES})
+set(libsrc
+        JniUtilities.cpp
+        JniLoggers.cpp
+        )
+
+add_library(objlib OBJECT ${libsrc})
+set_property(TARGET objlib PROPERTY POSITION_INDEPENDENT_CODE 1)
+add_library(jni++ SHARED $<TARGET_OBJECTS:objlib>)
+add_library(jni++_static STATIC $<TARGET_OBJECTS:objlib>)
+
+target_link_libraries(
+        jni++
+        ${JAVA_JVM_LIBRARY}
+        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
+)
+target_link_libraries(
+        jni++_static
+        ${JAVA_JVM_LIBRARY}
+        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
+)
+
+set_target_properties(jni++ PROPERTIES PUBLIC_HEADER "${libheaders}")
+
+install(TARGETS jni++ jni++_static
+        LIBRARY DESTINATION lib
+        PUBLIC_HEADER DESTINATION include
+        )

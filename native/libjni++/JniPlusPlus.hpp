@@ -14,6 +14,8 @@
 
 #include <jni.h>
 
+#include <memory>
+#include <cstring>
 #include <mutex>
 #include <typeinfo>
 #include <typeindex>
