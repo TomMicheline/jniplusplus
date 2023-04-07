@@ -21,15 +21,14 @@ get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
 include_directories("${lib_src_dir}")
 include_directories(${JNI_INCLUDE_DIRS})
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 add_executable(simpleapp SimpleApp.cpp)
 
 target_link_libraries(
         simpleapp
         jni++_static
         ${JAVA_JVM_LIBRARY}
-#        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
 )
-
-set(CMAKE_INSTALL_RPATH ${JAVA_JVM_DIRECTORY})
 
 install(TARGETS simpleapp)

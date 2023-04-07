@@ -83,5 +83,19 @@ Check the README.md file in the `java` and `native` directories for information 
 
 There are a couple of examples under `native/examples` to illustrate how libjni++ can be used and
 experiment with either calling libjni++ code from other languages or calling into other JVM 
-languages.  It is a work-in-progress.
+languages.  It is a work-in-progress.  For `simpleapp`, unless your current working directory
+is `native/<cmake build dir>/examples/simple_app` you will probably need to pass the path to the
+`libjni++.jar` file on the command line.   For example, if you are in the `native` directory you 
+might do:
+```shell
+# pwd
+/home/parallels/Projects/jniplusplus/native
+# ./build/bin/simpleapp ../java/main/build/libs/libjni++.jar 
+Is this upper case? 'HELLO, WORLD.'
+[Plain JNI] Does the pattern match text #1? YES
+[Plain JNI] Does the pattern match text #2? NO
+Does the pattern match text #1? YES
+Does the pattern match text #2? NO
+# 
+```
 

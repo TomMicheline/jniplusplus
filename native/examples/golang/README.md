@@ -31,8 +31,10 @@ where it would.
 ```
 3. You might need to set the JAVA_HOME environment variable if you don't have it set 
    already.  The build script tries to figure it out if you don't but YMMV.
-4. Run the build script, `example-build.sh`
-5. If everything worked, run the executable `go_example`
+4. Initialize your go module with something like: `go mod init go_example`
+5. Run the build script, `example-build.sh`
+6. If everything worked, run the executable `go_example` (the executable will have the same 
+name as your module).
 
 ## Building and running in an IDE
 
