@@ -17,7 +17,7 @@ using namespace jni_pp;
 extern "C" bool setupJava(const char *jarPath) {
     setMinimumLogLevel(jni_pp::LOG_WARN);
     getLogger()->debug(std::string("Creating JVM with classpath = '") + jarPath + "'");
-    auto worked = createVM(JNI_VERSION_20, jarPath);
+    auto worked = createVM(JNI_VERSION_10, jarPath);
     if (!worked) {
         std::cerr << "Failed to create Java VM!  Path=" << std::endl;
         return false;

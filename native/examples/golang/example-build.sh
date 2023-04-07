@@ -61,7 +61,7 @@ JAVA_INCLUDE_OPTIONS="-I$JAVA_INCLUDE -I$JAVA_PLATFORM_INCLUDE"
 JVM_LIB_DIR="$JAVA_HOME/lib/server"
 JAR_PATH="$BASEDIR/../java/main/build/libs/libjni++.jar"
 
-CGO_CFLAGS="-std=c17 $JAVA_INCLUDE_OPTIONS" \
+CGO_CFLAGS="-std=gnu17 $JAVA_INCLUDE_OPTIONS" \
 CGO_CXXFLAGS="-std=c++20 $JAVA_INCLUDE_OPTIONS -I$BUILDDIR/include" \
 CGO_LDFLAGS="-L$BUILDDIR/lib -ljni++_static -L$JVM_LIB_DIR -ljvm -Wl,-rpath,$JVM_LIB_DIR" \
 go build  -ldflags "-X main.JarPath=$JAR_PATH" .
