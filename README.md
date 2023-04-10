@@ -69,28 +69,31 @@ writing the plain JNI section, several errors were introduced in the signatures 
 get right.  In particular, I didn't notice that `Pattern.matcher()` takes a `CharSequence` not a `String` which
 wasted time in the debugger figuring out which method lookup failed and why.
 
-Both of these examples are pulled directly from the simple example app included in `native/examples/simple_app`.
+Both of these examples are pulled directly from the simple example app included in `examples/simple_app`.
 
 ## Build
 
 Currently, the C++ code uses cmake and the Java code uses gradle.  Eventually, the build systems will 
-be unified, probably to gradle.  Development is done using CLion for C++ code and IntelliJ IDEA for 
-Java code.  
+be unified, probably to gradle.  However, CLion gradle support seems to be a work in progress.  Using 
+different IDEs for the native and java code causes its own friction above and beyond that caused by 
+two different build systems.  Both IDEs use the same project files and so they collide.  To solve this
+there are project folders inside the top level folder (`java_project` and `native_project`) which link
+to the necessary parts of the build.
 
-Check the README.md file in the `java` and `native` directories for information on how to build each.
+Check the README.md file in the `java_project` and `native_project` directories for information on how 
+to build them and open them in the IDE.
 
 ## Examples
 
 There are a couple of examples under `native/examples` to illustrate how libjni++ can be used and
 experiment with either calling libjni++ code from other languages or calling into other JVM 
-languages.  It is a work-in-progress.  For `simpleapp`, unless your current working directory
-is `native/<cmake build dir>/examples/simple_app` you will probably need to pass the path to the
-`libjni++.jar` file on the command line.   For example, if you are in the `native` directory you 
-might do:
+languages.  It is a work-in-progress.  For `simpleapp`, you will probably need to pass the path to the
+`libjni++.jar` file on the command line.   For example, if you are have installed everying into the `install`
+directory then in the `jniplusplus` directory you might do:
 ```shell
 # pwd
-/home/parallels/Projects/jniplusplus/native
-# ./build/bin/simpleapp ../java/main/build/libs/libjni++.jar 
+/home/parallels/Projects/jniplusplus
+# ./install/bin/simpleapp install/lib/libjni++.jar 
 Is this upper case? 'HELLO, WORLD.'
 [Plain JNI] Does the pattern match text #1? YES
 [Plain JNI] Does the pattern match text #2? NO

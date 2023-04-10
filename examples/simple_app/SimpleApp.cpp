@@ -31,12 +31,6 @@ int main(int argc, const char **argv)
         path = argv[1];
     }
 
-    std::ifstream f(path.c_str());
-    if (!f.good()) {
-        std::cerr << "Error: Can't find jar file '" << path << "'.  You can specify the full path of the libjni++.jar file as the first command line argument" << std::endl;
-        return -1;
-    }
-
     auto worked = createVM(JNI_VERSION_10, path);
     if (!worked) {
         std::cerr << "Error: Failed to create Java VM!" << std::endl;

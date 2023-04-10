@@ -10,7 +10,8 @@
 // This code is licensed under the 2-clause BSD license (see LICENSE.md for details)
 //
 
-rootProject.name = "JniPlusPlus-Java"
-include(":main")
+rootProject.name = "jni++"
+
+includeBuild("../libjni++")
 
 

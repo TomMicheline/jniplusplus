@@ -17,8 +17,8 @@ project(jni++)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(build_dir "${CMAKE_CURRENT_LIST_DIR}/build")
-set(lib_src_dir "${CMAKE_CURRENT_LIST_DIR}/libjni++")
+set(install_dir "${CMAKE_CURRENT_LIST_DIR}/../install")
+set(lib_src_dir "${CMAKE_CURRENT_LIST_DIR}/../libjni++/src/main/cpp")
 
-add_subdirectory(libjni++)
-add_subdirectory(examples/simple_app)
+add_subdirectory(../libjni++/src/main/cpp libjni++)
+add_subdirectory(../examples/simple_app examples)

@@ -153,6 +153,12 @@ bool createVM(jint version, const std::string& classPath)
         envInstancePtr = _env;
     }
 
+    // Make sure we have the required support class in the classpath.
+    if (!envInstancePtr->FindClass("dev/tmich/jnipp/JavaToNativeExporter")) {
+        getLogger()->error("libjni++ support code not in classpath: " + classPath);
+        return false;
+    }
+
     initializeEnvironment();
     javaVM_cv.notify_all();
 

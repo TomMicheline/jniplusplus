@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-
 //
 // Java-land support code for calling Java from native code.
 //

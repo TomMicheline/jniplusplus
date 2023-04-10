@@ -14,14 +14,6 @@ plugins {
     id("java")
 }
 
-sourceSets {
-    main {
-        java {
-            setSrcDirs(listOf("src"))
-        }
-    }
-}
-
 tasks.jar {
     archiveFileName.set("libjni++.jar")
 }
@@ -40,4 +32,13 @@ dependencies {
 
 tasks.getByName<Test>("test") {
     useJUnitPlatform()
+}
+
+tasks.register<Copy>("copyJar") {
+    from(tasks.jar)
+    into("../install/lib")
+}
+
+tasks.build {
+  dependsOn("copyJar")
 }

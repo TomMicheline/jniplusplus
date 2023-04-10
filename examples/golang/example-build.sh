@@ -5,19 +5,22 @@
 ## JNI and libjni++
 ##
 
-SRCDIR="$(realpath "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
-BASEDIR="$(realpath $SRCDIR/../..)"
-BUILDDIR="${BASEDIR}/build"
+SRC_DIR="$(realpath "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+BASE_DIRDIR="$(realpath $SRC_DIR/../..)"
+INSTALL_DIR="${BASE_DIRDIR}/install"
+JAR_PATH="${INSTALL_DIR}/lib/libjni++.jar"
 
-if [ ! -f $BUILDDIR/include/JniPlusPlus.hpp -o ! -f $BUILDDIR/lib/libjni++_static.a ]
+if [ ! -f $INSTALL_DIR/include/JniPlusPlus.hpp ] || [ ! -f $INSTALL_DIR/lib/libjni++_static.a ] || [ ! -f $JAR_PATH ]
 then
   echo "libjni++ must be built and installed in the local project directory before the "
   echo "golang experiment can be built.  To build it do:"
-  echo "# cd <installed directory>/jniplusplus/native"
+  echo "# cd <installed directory>/jniplusplus/native_project"
   echo "# mkdir cmake-build-cl"
   echo "# cd cmake-build-cl"
   echo "# cmake -S .. -B ."
   echo "# make install"
+  echo "# cd ../java_project"
+  echo "# ./gradlew :libjni++:build"
   exit 1
 fi
 
@@ -59,9 +62,8 @@ fi
 
 JAVA_INCLUDE_OPTIONS="-I$JAVA_INCLUDE -I$JAVA_PLATFORM_INCLUDE"
 JVM_LIB_DIR="$JAVA_HOME/lib/server"
-JAR_PATH="$BASEDIR/../java/main/build/libs/libjni++.jar"
 
 CGO_CFLAGS="-std=gnu17 $JAVA_INCLUDE_OPTIONS" \
-CGO_CXXFLAGS="-std=c++20 $JAVA_INCLUDE_OPTIONS -I$BUILDDIR/include" \
-CGO_LDFLAGS="-L$BUILDDIR/lib -ljni++_static -L$JVM_LIB_DIR -ljvm -Wl,-rpath,$JVM_LIB_DIR" \
-go build  -ldflags "-X main.JarPath=$JAR_PATH" .
+CGO_CXXFLAGS="-std=c++20 $JAVA_INCLUDE_OPTIONS -I$INSTALL_DIR/include" \
+CGO_LDFLAGS="-L$INSTALL_DIR/lib -ljni++_static -L$JVM_LIB_DIR -ljvm -Wl,-rpath,$JVM_LIB_DIR" \
+go build  -ldflags "-X main.JarPath=$JAR_PATH" "$@" .

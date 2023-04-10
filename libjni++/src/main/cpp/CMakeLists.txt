@@ -14,7 +14,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(libjni++)
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../build" CACHE PATH "..." FORCE)
+set(CMAKE_INSTALL_PREFIX "${install_dir}" CACHE PATH "..." FORCE)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Java REQUIRED)

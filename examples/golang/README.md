@@ -17,13 +17,13 @@ where it would.
 
 ## Prerequisites
 
-1. Build Java library used by libjni++.  The gradle based build is in jniplusplus/java.
-   You can either build it on the command line like `./gradlew jar` or use an IDE that
-   supports gradle based projects like JetBrains's IDEA.
+1. Build Java library used by libjni++.  The gradle based build is in jniplusplus/java_project.
+   You can build it on the command line like `./gradlew :libjni++:build` or use an IDE that
+   supports gradle based projects like JetBrains's IDEA and execute the same task.
 2. Build the native libjni++ library.  You will need `cmake` and one way to do it is
    like this:
 ```shell
-        # cd <install location>/jniplusplus/native
+        # cd <install location>/jniplusplus/native_project
         # mkdir cmake-build-cl
         # cd cmake-build-cl
         # cmake -S .. -B .
