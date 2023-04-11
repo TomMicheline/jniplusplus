@@ -1,19 +1,6 @@
 # Go Example Application
 
-This is an experiment to see how libjni++ works when called from Go using cgo.  This
-probably wouldn't make sense in a production environment but there might be use-cases
-where it would.  
-
-## Issues
-
-* Not really libjni++ specific but there is friction between c types and go types.
-  There isn't really anything we can do about that but it is unfortunate because one
-  of the main design goals of libjni++ is to reduce boilerplate and make calling JVM 
-  methods as painless as possible.
-* Because cgo can only directly wrap C functions and not C++ classes/functions it is 
-  necessary to write a wrapper for any JVM calls to hide the templates from cgo.  In
-  this experiment the function implementations are in c_wrappers.cpp and the declarations
-  are in the import "C" preamble in main.go.
+This is an experiment to see how libjni++ works when called from Go using cgo.  
 
 ## Prerequisites
 
