@@ -12,13 +12,7 @@
 #pragma once
 
 #include <stdbool.h>
-
 #include "jni.h"
-
-// If we aren't including jni.h, provide opaque pointer typedef for jobject
-//#ifndef JNI_OK
-//typedef struct _jobject *jobject;
-//#endif
 
 bool setupJava(const char *jarPath);
 jobject javaCompilePattern(const char *regex);
