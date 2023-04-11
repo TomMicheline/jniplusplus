@@ -53,7 +53,7 @@ public:
 
 protected:
     Method(const std::string& className, const std::string& methodName, const std::string& signature, bool isStatic, int numReservedParameters) :
-            isStatic(isStatic), methodSignature(signature), methodName(methodName), givenClassName(className), numReservedParameters(numReservedParameters)
+            isStatic(isStatic), givenClassName(className), methodName(methodName), methodSignature(signature), numReservedParameters(numReservedParameters)
     {
     }
 

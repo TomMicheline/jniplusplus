@@ -38,3 +38,6 @@ cmake-build-*
 build
 *.iml
 /install
+target
+/examples/rust/src/bindings.rs
+Cargo.lock

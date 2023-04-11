@@ -250,8 +250,8 @@ private:
 	void appendStacktrace(const jthrowable& topException) {
 		jthrowable jexception(topException);
 
-		// Loop through the causes..
-		for (int causeIndex = 0; jexception != nullptr; ++causeIndex) {
+		// Loop through the causes...
+		while (jexception != nullptr ) {
 
 			auto frames( (jobjectArray) env()->CallObjectMethod(jexception, getStackTrace) );
 			if (!frames) return;
@@ -305,7 +305,7 @@ inline void checkForExceptions() {
         java_exception_details details(jexception);
 
        jni_pp::log_print(LOG_ERROR, "Caught JAVA exception %s: %s", details.name.c_str(), details.message.c_str());
-        for (int cause=0; cause<details.stacktraceCauses.size(); ++cause) {
+        for (std::vector<std::string>::size_type cause=0; cause<details.stacktraceCauses.size(); ++cause) {
             jni_pp::log_print(LOG_ERROR, "Caused by: %s", details.stacktraceCauses[cause].c_str());
             for (const auto & frame : details.stacktraceFrames[cause]) {
                 jni_pp::log_print(LOG_ERROR, "\t%s", frame.c_str());
