@@ -19,22 +19,22 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Java REQUIRED)
 
-message("JAVA_HOME = ${JAVA_HOME}")
-message("Java_JAVA_EXECUTABLE = ${Java_JAVA_EXECUTABLE}")
-message("Java_JAVAC_EXECUTABLE = ${Java_JAVAC_EXECUTABLE}")
-message("Java_JAVAH_EXECUTABLE = ${Java_JAVAH_EXECUTABLE}")
-message("Java_JAVADOC_EXECUTABLE = ${Java_JAVADOC_EXECUTABLE}")
-message("Java_VERSION_STRING = ${Java_VERSION_STRING}")
-message("Java_VERSION = ${Java_VERSION}")
+#message("JAVA_HOME = ${JAVA_HOME}")
+#message("Java_JAVA_EXECUTABLE = ${Java_JAVA_EXECUTABLE}")
+#message("Java_JAVAC_EXECUTABLE = ${Java_JAVAC_EXECUTABLE}")
+#message("Java_JAVAH_EXECUTABLE = ${Java_JAVAH_EXECUTABLE}")
+#message("Java_JAVADOC_EXECUTABLE = ${Java_JAVADOC_EXECUTABLE}")
+#message("Java_VERSION_STRING = ${Java_VERSION_STRING}")
+#message("Java_VERSION = ${Java_VERSION}")
 
 find_package(JNI)
 
-if (JNI_FOUND)
-    # -- JNI_INCLUDE_DIRS=C:/Program Files/Java/jdk1.8.0_191/include;C:/Program Files/Java/jdk1.8.0_191/include/win32;C:/Program Files/Java/jdk1.8.0_191/include
-    # -- JNI_LIBRARIES=C:/Program Files/Java/jdk1.8.0_191/lib/jawt.lib;C:/Program Files/Java/jdk1.8.0_191/lib/jvm.lib
-    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-endif()
+#if (JNI_FOUND)
+#    # -- JNI_INCLUDE_DIRS=C:/Program Files/Java/jdk1.8.0_191/include;C:/Program Files/Java/jdk1.8.0_191/include/win32;C:/Program Files/Java/jdk1.8.0_191/include
+#    # -- JNI_LIBRARIES=C:/Program Files/Java/jdk1.8.0_191/lib/jawt.lib;C:/Program Files/Java/jdk1.8.0_191/lib/jvm.lib
+#    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+#    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+#endif()
 
 get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
 
