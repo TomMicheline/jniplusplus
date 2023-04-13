@@ -12,7 +12,6 @@
 
 #include <climits>
 #include <map>
-#include <utility>
 #include <algorithm>
 
 #include "JniPlusPlus.hpp"
@@ -105,6 +104,7 @@ bool createVM(jint version, const std::string& classPath)
         JavaVMInitArgs vm_args; /* JDK/JRE 6 VM initialization arguments */
         auto *options = new JavaVMOption[1];
         options[0].optionString = strdup(("-Djava.class.path=" + classPath).c_str());
+        std::cerr << "class path cmd line option = '" << options[0].optionString << "'" << std::endl;
         vm_args.version = version;
         vm_args.nOptions = 1;
         vm_args.options = options;
