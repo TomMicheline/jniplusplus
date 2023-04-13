@@ -1,0 +1,3 @@
+# libjni++ User Manual
+
+Lots of good info here....

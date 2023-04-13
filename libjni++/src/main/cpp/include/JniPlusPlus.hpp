@@ -10,6 +10,14 @@
 // This code is licensed under the 2-clause BSD license (see LICENSE.md for details)
 //
 
+/// @file JniPlusPlus.hpp
+/// @author Tom Micheline <tom@tmich.dev>
+/// @brief Main header file for libjni++
+///
+/// Contains the class used to define and invoke JVM methods, constructors and interact with arrays.  Also
+/// the most commonly used public functions are defined here.  Other, private or less frequently used functions
+/// are in files under jnipp.
+
 #pragma once
 
 #include <jni.h>
@@ -30,12 +38,21 @@
 
 namespace jni_pp {
 
-
+/// @brief Method pure-virtual base class.
+///
+/// This class forms the base class for all method invocation classes.  It can not be used directly.
+/// @tparam ReturnType The C++ returned by the invoked method
+/// @tparam Args Variadic list of method parameter types.  In some cases (for example an instance method) the
+/// first type will be the jobject reference to the target java object.
 template <typename ReturnType, typename... Args>
 class Method {
 public:
 	virtual ~Method() = default;
 
+    /// @brief Take the passed in JVM class name and return the full class name.
+    ///
+    /// Applies rules such as applying a default package and/or swig mappings to determine the canonical class name.
+    /// @return The class name as a string
     const std::string& getClassName() {
         call_once(runCNOnce, [&]{
             cn = calculateClassName(givenClassName);
@@ -43,21 +60,54 @@ public:
         return cn;
     }
 
+    /// @brief Lookup the MethodInfo for this Method.
+    ///
+    /// The actual lookup is only performed the first time and cached.  Each instance caches the results in the Mehtod
+    /// object but, if you have more than one Method object that refers to the same JVM method, the results are also
+    /// cached globally.  The returned structure includes the jclass and jmethodID for the method.
+    /// @return Pointer to MethodInfo struct.  Will never be nullptr, currently aborts if method or class cannot be found.
 	MethodInfo* getMethodInfo() {
 		call_once(runMIOnce, [&]{
-            methodInfo = jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, isStatic, numParameters);
+            methodInfo = getMethodInfoInternal();
         });
 		return methodInfo;
 	}
 
-	typename Actualized<ReturnType>::type operator()(Args ...);
+    /// @brief Function call operator.
+    ///
+    /// Performs the common logic for JVM method invocation but uses the pure-virtual invoke() function to perform the
+    /// type specific invocation logic.
+    /// @param args The arguments to pass to the JVM method
+    /// @return The value returned by the JVM method, converted to the ReturnType C++ type.
+	typename Actualized<ReturnType>::type operator()(Args ...args);
 
 protected:
-    Method(const std::string& className, const std::string& methodName, const std::string& signature, bool isStatic, int numReservedParameters) :
-            isStatic(isStatic), givenClassName(className), methodName(methodName), methodSignature(signature), numReservedParameters(numReservedParameters)
+
+    /// @brief Subclass implemented function to lookup the MethodInfo.
+    ///
+    /// Does not need to worry about thread safety, that is handled by getMethodInfo() which is the only place
+    /// this should be called.
+    /// @return Pointer to MethodInfo struct which contains the jclass and jmethodID.
+    virtual MethodInfo* getMethodInfoInternal() = 0;
+
+    /// @brief Method constructor only visible to implementing classes.
+    /// @param className Name of the JVM class
+    /// @param methodName Name of the JVM method
+    /// @param signature JNI signature which can be empty
+    /// @param isStatic Is this a static method
+    /// @param numReservedParameters How many parameters are used by the implementation and not passed to the JVM method.  Generally, 0 or 1 depending
+    /// on if there is an instance object being passed in as the first parameter.
+    Method(const std::string& className, const std::string& methodName, const std::string& signature, int numReservedParameters) :
+            givenClassName(className), methodName(methodName), methodSignature(signature), numReservedParameters(numReservedParameters)
     {
     }
 
+    /// @brief Invoke the refered to JVM method with the given arguments and return the converted results.
+    ///
+    ///
+    /// @param javaArgs
+    /// @param refs
+    /// @return
     virtual typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) = 0;
 
 private:
@@ -75,7 +125,6 @@ private:
     }
 
 protected:
-    const bool isStatic;
     const std::string givenClassName;
     const std::string methodName;
     const std::string methodSignature;
@@ -95,12 +144,16 @@ class StaticMethod : public Method<ReturnType, Args...> {
 public:
 
     typedef Method<ReturnType, Args...> Base;
-    using Base::getMethodInfo;
+    using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
-	StaticMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") : Method<ReturnType, Args...>(className, methodName, signature, true, 0) {}
+	StaticMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") : Method<ReturnType, Args...>(className, methodName, signature, 0) {}
 	virtual ~StaticMethod() {}
 
 protected:
+    MethodInfo* getMethodInfoInternal() {
+        return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, true, numParameters);
+    }
+
     typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
@@ -111,14 +164,18 @@ class InstanceMethod :  public Method<ReturnType, jobject, Args...> {
 public:
 
     typedef Method<ReturnType, jobject, Args...> Base;
-    using Base::getMethodInfo;
+    using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
 	InstanceMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") :
-        Method<ReturnType, jobject, Args...>(className, methodName, signature, false, 1)
+        Method<ReturnType, jobject, Args...>(className, methodName, signature, 1)
         {}
 	virtual ~InstanceMethod() {}
 
 protected:
+    MethodInfo* getMethodInfoInternal() {
+        return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, false, numParameters);
+    }
+
     typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
@@ -127,15 +184,18 @@ class SingletonMethod : public Method<ReturnType, Args...> {
 public:
 
     typedef Method<ReturnType, Args...> Base;
-    using Base::getMethodInfo;
-    using Base::getClassName;
+    using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
     SingletonMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") :
-        Method<ReturnType, Args...>(className, methodName, signature, false, 0)
+        Method<ReturnType, Args...>(className, methodName, signature, 0)
         {}
     virtual ~SingletonMethod() {}
 
 protected:
+    MethodInfo* getMethodInfoInternal() {
+        return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, false, numParameters);
+    }
+
     typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
@@ -144,12 +204,16 @@ class Constructor :  public Method<ReturnType, Args...> {
 public:
 
 	typedef Method<ReturnType, Args...> Base;
-    using Base::getMethodInfo;
+    using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
-	Constructor(const std::string& className, const std::string& signature = "") : Method<ReturnType, Args...>(className, "<init>", signature, false, 0) {}
+	Constructor(const std::string& className, const std::string& signature = "") : Method<ReturnType, Args...>(className, "<init>", signature, 0) {}
 	virtual ~Constructor() {}
 
 protected:
+    MethodInfo* getMethodInfoInternal() {
+        return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, false, numParameters);
+    }
+
     jobject invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
