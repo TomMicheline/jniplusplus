@@ -9,8 +9,8 @@
 // This code is licensed under the 2-clause BSD license (see LICENSE.md for details)
 //
 
+#include <jni.h>
 #include "JniPlusPlus.hpp"
-#include "jni.h"
 
 using namespace jni_pp;
 

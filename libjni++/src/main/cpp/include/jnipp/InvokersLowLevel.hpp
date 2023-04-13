@@ -13,7 +13,7 @@
 #pragma once
 
 #include <jni.h>
-#include "JniUtilities.hpp"
+#include "jnipp/Utilities.hpp"
 
 
 namespace jni_pp {

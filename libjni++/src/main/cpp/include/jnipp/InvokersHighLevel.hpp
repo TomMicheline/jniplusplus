@@ -14,9 +14,10 @@
 
 #include <jni.h>
 
-#include "JniUtilities.hpp"
-#include "Converters.hpp"
-#include "LowLevelInvokers.hpp"
+#include "jnipp/Utilities.hpp"
+#include "jnipp/Converters.hpp"
+#include "jnipp/InvokersLowLevel.hpp"
+#include "jnipp/References.hpp"
 
 
 namespace jni_pp {

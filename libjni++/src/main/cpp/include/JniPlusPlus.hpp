@@ -21,11 +21,12 @@
 #include <typeindex>
 #include <map>
 
-#include "JniUtilities.hpp"
-#include "Converters.hpp"
-#include "LowLevelInvokers.hpp"
-#include "HighLevelInvokers.hpp"
-
+#include "jnipp/Utilities.hpp"
+#include "jnipp/Converters.hpp"
+#include "jnipp/InvokersLowLevel.hpp"
+#include "jnipp/InvokersHighLevel.hpp"
+#include "jnipp/References.hpp"
+#include "jnipp/Loggers.hpp"
 
 namespace jni_pp {
 

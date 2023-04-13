@@ -16,15 +16,8 @@ project(jni++_simple_app)
 find_package(Java REQUIRED)
 find_package(JNI)
 
-get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
-
-include_directories("${lib_src_dir}")
-include_directories(${JNI_INCLUDE_DIRS})
-
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
 add_executable(simpleapp SimpleApp.cpp)
-
 target_link_libraries(
         simpleapp
         jni++_static

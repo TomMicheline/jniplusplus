@@ -38,24 +38,29 @@ find_package(JNI)
 
 get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
 
-include_directories(.)
-include_directories(${JNI_INCLUDE_DIRS})
-
 set (libheaders
-        Converters.hpp
-        HighLevelInvokers.hpp
-        JniPlusPlus.hpp
-        JniUtilities.hpp
-        LowLevelInvokers.hpp
-        JniLoggers.hpp
+        include/JniPlusPlus.hpp
+        include/jnipp/Converters.hpp
+        include/jnipp/InvokersHighLevel.hpp
+        include/jnipp/Utilities.hpp
+        include/jnipp/InvokersLowLevel.hpp
+        include/jnipp/Loggers.hpp
+        include/jnipp/Exceptions.hpp
+        include/jnipp/JvmNativeImpls.hpp
+        include/jnipp/Singletons.hpp
+        include/jnipp/ThreadWrapper.hpp
         )
 
 set(libsrc
-        JniUtilities.cpp
-        JniLoggers.cpp
-        )
+        src/Utilities.cpp
+        src/Loggers.cpp
+        src/Exceptions.cpp
+        src/JvmNativeImpls.cpp
+        src/Singletons.cpp
+        src/ThreadWrapper.cpp
+        src/Converters.cpp)
 
-add_library(objlib OBJECT ${libsrc})
+add_library(objlib OBJECT ${libsrc} ${libheaders})
 set_property(TARGET objlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 add_library(jni++ SHARED $<TARGET_OBJECTS:objlib>)
 add_library(jni++_static STATIC $<TARGET_OBJECTS:objlib>)
@@ -73,7 +78,20 @@ target_link_libraries(
 
 set_target_properties(jni++ PROPERTIES PUBLIC_HEADER "${libheaders}")
 
+# Include directories for local build of objlib
+target_include_directories(objlib PUBLIC "include")
+target_include_directories(objlib PUBLIC ${JNI_INCLUDE_DIRS})
+
+# Export header dirs for dependant builds
+target_include_directories(jni++ PUBLIC "include")
+target_include_directories(jni++_static PUBLIC "include")
+target_include_directories(jni++ PUBLIC ${JNI_INCLUDE_DIRS})
+target_include_directories(jni++_static PUBLIC ${JNI_INCLUDE_DIRS})
+
 install(TARGETS jni++ jni++_static
         LIBRARY DESTINATION lib
         PUBLIC_HEADER DESTINATION include
+        )
+install(DIRECTORY "include"
+        DESTINATION "${install_dir}"
         )

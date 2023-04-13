@@ -15,9 +15,6 @@
 
 #include <jni.h>
 #include <iostream>
-#include <fstream>
-#include <cstdlib>
-#include <unistd.h>
 
 using namespace jni_pp;
 

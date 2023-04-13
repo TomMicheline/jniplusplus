@@ -13,7 +13,11 @@
 #pragma once
 
 #include <jni.h>
-#include "JniUtilities.hpp"
+#include <typeindex>
+#include <map>
+
+#include "jnipp/Utilities.hpp"
+#include "jnipp/References.hpp"
 
 
 //
@@ -171,7 +175,8 @@ jvalue convertToJValue(double arg);
 jvalue convertToJValue(int64_t arg);
 jvalue convertToJValue(jobject arg);
 
-
+jstring toJString(const char *s);
+jstring toJString(std::string& s);
 
 inline std::string jStringToString(jstring s) {
     if (s == nullptr) return "";

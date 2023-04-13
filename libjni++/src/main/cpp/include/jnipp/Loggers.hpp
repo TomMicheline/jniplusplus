@@ -56,4 +56,15 @@ protected:
     void log(LogPriority level, const std::string& msg) override;
 };
 
+void log_vprint(int level, const char *fmt, va_list args);
+void log_print(int level, const char *fmt, ...);
+
+void setMinimumLogLevel(LogPriority level);
+LogPriority getMinimumLogLevel();
+
+void setLogger(std::shared_ptr<JniLogger> logger);
+std::shared_ptr<JniLogger> getLogger();
+
+#define assertm(exp, msg) assert(((void)msg, exp))
+
 } // jnipp

@@ -16,7 +16,8 @@
 #include <algorithm>
 
 #include "JniPlusPlus.hpp"
-#include "JniUtilities.hpp"
+#include "jnipp/Utilities.hpp"
+#include "jnipp/References.hpp"
 
 #pragma GCC diagnostic ignored "-Wformat-security"
 
@@ -24,20 +25,10 @@
 namespace jni_pp {
 
 
-static bool debugMode = false;
-
 std::mutex WrapperMapper::mutex;
 std::map<std::type_index, const std::string> WrapperMapper::wrapperMap;
 
 void setJavaMinimumLogLevel();
-
-void setMode(bool debug) {
-    debugMode = debug;
-}
-
-bool isDebugMode() {
-    return debugMode;
-}
 
 std::recursive_mutex javaEnv_mutex;
 thread_local JNIEnv* envInstancePtr(nullptr);
@@ -53,25 +44,6 @@ StaticMethod<jobject, std::string, std::string, bool> jLookupJavaField("dev.tmic
                                                                        "(Ljava/lang/String;Ljava/lang/String;Z)Ljava/lang/reflect/Field;");
 InstanceMethod<jobject> jGetFieldClass("java/lang/reflect/Field", "getDeclaringClass", "()Ljava/lang/Class;");
 
-void initializeEnvironment() {
-	//
-	// These methods are, depending on the situation, called from getMethodInfo so they need to have their method info cached
-    // before any other code attempts to call getMethodInfo because otherwise it would be called recursively and deadlock.  Because
-    // they are configured with the full signature and are in JavaToNativeExporter, they avoid calling either method before
-    // they are cached.  Also, this causes JavaToNativeExporter class to be cached which has to happen before any new threads are
-    // created by the native code since they need to be able to call a method on that class before their ClassLoader is configured
-    // correctly.
-    //
-    jIsExportable.getMethodInfo();
-	jLookupJavaMember.getMethodInfo();
-    jLookupJavaField.getMethodInfo();
-    jGetFieldClass.getMethodInfo();
-
-    //
-    // Pass the current minimum log level to Java.  It might have been set before we created the VM or were attached.
-    //
-    setJavaMinimumLogLevel();
-}
 
 void setEnv(JNIEnv* env) {
 	envInstancePtr = env;
@@ -221,63 +193,25 @@ void detachCurrentThread() {
   }
 }
 
-std::shared_ptr<JniLogger> gLog = std::make_shared<JniStreamLogger>();
-LogPriority gMinimumLogLevel = LOG_DEBUG;
+void initializeEnvironment() {
+    //
+    // These methods are, depending on the situation, called from getMethodInfo so they need to have their method info cached
+    // before any other code attempts to call getMethodInfo because otherwise it would be called recursively and deadlock.  Because
+    // they are configured with the full signature and are in JavaToNativeExporter, they avoid calling either method before
+    // they are cached.  Also, this causes JavaToNativeExporter class to be cached which has to happen before any new threads are
+    // created by the native code since they need to be able to call a method on that class before their ClassLoader is configured
+    // correctly.
+    //
+    jIsExportable.getMethodInfo();
+    jLookupJavaMember.getMethodInfo();
+    jLookupJavaField.getMethodInfo();
+    jGetFieldClass.getMethodInfo();
 
-void setJavaMinimumLogLevel() {
-    if (isEnvSetup()) {
-        static StaticMethod<void, int> jSetMinimumLogLevel("dev.tmich.jnipp.JavaToNativeExporter", "setMinimumLogLevel");
-        jSetMinimumLogLevel(gMinimumLogLevel);
-    }
-}
-
-void setMinimumLogLevel(LogPriority level) {
-    gMinimumLogLevel = level;
+    //
+    // Pass the current minimum log level to Java.  It might have been set before we created the VM or were attached.
+    //
     setJavaMinimumLogLevel();
 }
-
-LogPriority getMinimumLogLevel() {
-    return gMinimumLogLevel;
-}
-
-void setLogger(std::shared_ptr<JniLogger> logger)
-{
-    gLog = std::move(logger);
-}
-
-std::shared_ptr<JniLogger> getLogger()
-{
-    return gLog;
-}
-
-void log_vprint(int level, const char *fmt, va_list args) {
-	char dest[1024];
-	vsnprintf(dest, 1024, fmt, args);
-    switch (level) {
-        default:
-        case LOG_DEBUG:
-            gLog->debug(dest);
-            break;
-        case LOG_WARN:
-            gLog->warning(dest);
-            break;
-        case LOG_ERROR:
-            gLog->error(dest);
-            break;
-    }
-}
-
-void log_print(int level, const char *fmt, ...) {
-	va_list argptr;
-	va_start(argptr, fmt);
-    log_vprint(level, fmt, argptr);
-	va_end(argptr);
-}
-
-void sendExceptionEvent(jthrowable jt) {
-    // TODO: make pluggable crash reporter system so it can be sent to places like crashlytics
-}
-
 
 std::map<std::string, FieldInfo*> javaFieldCache;
 std::map<std::string, MethodInfo*> javaMethodCache;
@@ -457,8 +391,6 @@ FieldInfo  *getFieldInfo(const std::string& className, const std::string& fieldN
     return fi;
 }
 
-#pragma clang diagnostic push
-
 template <typename CppType>
 CppType* getSwigPointer(jobject obj) {
     static InstanceField<long> pointerField(SwigWrapper<CppType>::getClassName());
@@ -466,90 +398,6 @@ CppType* getSwigPointer(jobject obj) {
     return *((CppType**)&pointerAsLong);
 //    return reinterpret_cast<CppType*>(pointerAsLong);
 }
-
-
-jvalue convertToJValue(std::string& arg) {
-	jvalue jv;
-	jv.l = env()->NewStringUTF(arg.c_str());
-	return jv;
-}
-
-jvalue convertToJValue(const char * arg) {
-    jvalue jv;
-    if (!arg) jv.l = nullptr;
-    else jv.l = env()->NewStringUTF(arg);
-	return jv;
-}
-
-jvalue convertToJValue(bool arg) {
-	jvalue jv;
-	jv.z = arg;
-	return jv;
-}
-
-// This is a potential problem.  jbyte is signed so it isn't clear what type should be used.  Maybe short?
-jvalue convertToJValue(unsigned char arg) {
-	jvalue jv;
-	jv.b = arg;
-	return jv;
-}
-
-jvalue convertToJValue(char arg) {
-	jvalue jv;
-	jv.c = (jchar) (unsigned char) arg;
-	return jv;
-}
-
-jvalue convertToJValue(short arg) {
-	jvalue jv;
-	jv.s = arg;
-	return jv;
-}
-
-jvalue convertToJValue(int arg) {
-	jvalue jv;
-	jv.i = arg;
-	return jv;
-}
-
-jvalue convertToJValue(long arg) {
-    jvalue jv;
-    jv.j = arg;
-    return jv;
-}
-
-jvalue convertToJValue(long long arg) {
-    jvalue jv;
-    jv.j = arg;
-    return jv;
-}
-
-jvalue convertToJValue(float arg) {
-	jvalue jv;
-	jv.f = arg;
-	return jv;
-}
-
-jvalue convertToJValue(double arg) {
-	jvalue jv;
-	jv.d = arg;
-	return jv;
-}
-    
-jvalue convertToJValue(jobject arg) {
-	jvalue jv;
-	jv.l = arg;
-	return jv;
-}
-
-jstring toJString(const char *s) {
-	return jstring(convertToJValue(s).l);
-}
-
-jstring toJString(std::string& s) {
-	return jstring(convertToJValue(s).l);
-}
-#pragma clang diagnostic pop
 
 static std::string javaBasePackageName;
 static std::string swigPackageName;
@@ -570,162 +418,4 @@ const std::string& getSwigPackage() {
     return swigPackageName;
 }
 
-std::mutex singleton_mutex;
-std::map<std::string, jobject> singleton_map;
-
-jobject getSingletonObject(const std::string& className) {
-    std::unique_lock<std::mutex> lock(singleton_mutex);
-    auto it = singleton_map.find(className);
-    if (it == singleton_map.end()) {
-        return nullptr;
-    }
-    return it->second;
-}
-
-void clearSingletonObjects() {
-    std::unique_lock<std::mutex> lock(singleton_mutex);
-    for (auto& pair : singleton_map) {
-        env()->DeleteGlobalRef(pair.second);
-    }
-    singleton_map.clear();
-}
-
-void registerSingleton(const std::string& className, jobject obj) {
-    std::unique_lock<std::mutex> lock(singleton_mutex);
-    auto it = singleton_map.find(className);
-    // Only remove the singleton if both the name and object match
-    if (it != singleton_map.end()) {
-        if (env()->IsSameObject(it->second, obj)) {
-            // already mapped
-            return;
-        } else {
-            // Free old reference
-            env()->DeleteGlobalRef(it->second);
-        }
-    }
-    singleton_map[className] = env()->NewGlobalRef(obj);
-}
-
-void unregisterSingleton(const std::string& className, jobject obj) {
-    std::unique_lock<std::mutex> lock(singleton_mutex);
-    auto it = singleton_map.find(className);
-    // Only remove the singleton if both the name and object match
-    if (it != singleton_map.end() && env()->IsSameObject(it->second, obj)) {
-        env()->DeleteGlobalRef(it->second);
-        singleton_map.erase(it);
-    }
-}
-
-uint32_t javaThreadWrapper(struct javaThreadArgs *args)
-{
-	static StaticMethod<int, const char *, long> jBindToAppClassLoader("JavaToNativeExporter", "bindToAppClassLoader", "(Ljava/lang/String;J)I");
-
-    bool doDetachThread = jni_pp::attachCurrentThread();
-
-    //
-    // Call to Java which will, in turn, call ..._nativeThreadWrapper (above).  With the Java frames from classes in our
-    // application on the call stack, JNI functions to lookup classes will use the correct class loader.  *sigh*  Super painful.
-    //
-    uint32_t callbackResult = 0;
-    const char* name = args->name;  // save name since args is freed during the bind operation...
-
-    bool successful = false;
-    std::string msg;
-    try {
-    	callbackResult = (uint32_t) jBindToAppClassLoader(args->name, (long)args);
-    	successful = true;
-	} catch (const std::exception& ex) {
-		msg = ex.what();
-    } catch (const std::string& ex) {
-    	msg = ex;
-    } catch (...) {
-    	msg = "Unknown exception";
-	}
-
-    if (!successful) {
-        jni_pp::log_print(LOG_DEBUG, "bindToAppClassLoader for thread %s threw exception!  Error: %s", name, msg.c_str());
-        doDetachThread = false;
-    }
-
-    if (doDetachThread) {
-        jni_pp::detachCurrentThread();
-    }
-
-    return callbackResult;
-}
-
 }  // Namespace jni_pp
-
-
-using namespace jni_pp;
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-#pragma ide diagnostic ignored "UnusedParameter"
-
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
-	log_print(LOG_DEBUG, "Native: JNI_OnLoad called.  Caching VM.");
-	jni_pp::setVM(vm);
-    initializeEnvironment();
-    return JNI_VERSION_1_6;
-}
-
-extern "C"
-void Java_dev_tmich_jnipp_JavaToNativeExporter_registerSingleton(JNIEnv *env, jclass clazz, jstring jname, jobject obj) {
-    std::string className = ToCppConverter<std::string>::convertToCpp((jobject)jname);
-    registerSingleton(className, obj);
-}
-
-extern "C"
-void Java_dev_tmich_jnipp_JavaToNativeExporter_unregisterSingleton(JNIEnv *env, jclass clazz, jstring classNameJavaString, jobject obj) {
-    std::string className = ToCppConverter<std::string>::convertToCpp((jobject)classNameJavaString);
-    unregisterSingleton(className, obj);
-}
-
-extern "C"
-void Java_dev_tmich_jnipp_JavaToNativeExporter_unregisterAllSingletons(JNIEnv *env, jclass clazz) {
-    clearSingletonObjects();
-}
-
-extern "C"
-void Java_dev_tmich_jnipp_JavaToNativeExporter_nativeLog(JNIEnv *env, jclass clazz, jint level, jstring jmsg) {
-    std::string msg = ToCppConverter<std::string>::convertToCpp((jobject)jmsg);
-    jni_pp::log_print(level, msg.c_str());
-}
-
-extern "C"
-jint Java_dev_tmich_jnipp_JavaToNativeExporter_nativeThreadWrapper(JNIEnv *env, jclass cls, jlong ptrToJavaThreadArgs)
-{
-    auto *args = (struct javaThreadArgs *) ptrToJavaThreadArgs;
-	auto start_routine = args->start_routine;
-	void *arg = args->arg;
-	const char* name = args->name;
-
-    //
-    // Better call this here, after we have attached to correct class loader than in javaThreadWrapper
-    //
-//    if ( args->priority != thread_PriorityNormal) {
-//        // TODO: Set priority
-//    }
-
-    free(args);
-
-	jint result = -1;
-
-    bool caughtException = true;
-	try {
-		result = start_routine(arg);
-        caughtException = false;
-	} catch (const std::exception& ex) {
-		jni_pp::log_print(LOG_DEBUG, "nativeThreadWrapper caught exception for thread %s. Returning -1!  Error: %s", name, ex.what());
-    } catch (const std::string& ex) {
-		jni_pp::log_print(LOG_DEBUG, "nativeThreadWrapper caught exception for thread %s. Returning -1!  Error: %s", name, ex.c_str());
-    } catch (...) {
-		jni_pp::log_print(LOG_DEBUG, "nativeThreadWrapper caught exception for thread %s. Returning -1!  Error: Unknown Exception", name);
-	}
-
-    assert((!caughtException || !jni_pp::isDebugMode()) && "Thread threw uncaught exception in debug mode");
-
-    return result;
-}
-#pragma clang diagnostic pop
