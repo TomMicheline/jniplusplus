@@ -246,9 +246,17 @@ inline std::string ToCppConverter<std::string>::convertToCpp(jobject val) {
 template <>
 template <>
 inline char * ToCppConverter<char *>::convertToCpp(jobject val) {
-	char * result = jStringToCharPtr(static_cast<jstring>(val));
-	env()->DeleteLocalRef(val);
-	return result;
+    char * result = jStringToCharPtr(static_cast<jstring>(val));
+    env()->DeleteLocalRef(val);
+    return result;
+}
+
+template <>
+template <>
+inline const char * ToCppConverter<const char *>::convertToCpp(jobject val) {
+    const char * result = jStringToCharPtr(static_cast<jstring>(val));
+    env()->DeleteLocalRef(val);
+    return result;
 }
 
 template <typename JavaType>
