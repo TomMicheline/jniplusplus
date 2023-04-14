@@ -3,6 +3,8 @@
 Modern c++ library for making JVM calls via JNI using variadic templates to reduce boilerplate, 
 leverage automatic type conversion, and enable compile-time type checking.
 
+More information can be found at the [project website](https://jniplusplus.micheline.dev/).
+
 ## Illustration by example
 
 Let's say we want to call some regex Java code from C++ (I know, it's silly, but it is just an example).
