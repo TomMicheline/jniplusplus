@@ -4,6 +4,7 @@ on: [push]
 jobs:
   gen-native-docs:
     name: Generate all docs
+    runs-on: ubuntu-latest
     steps:
       - name: Generate native reference manual
         uses: mattnotmitt/doxygen-action@v1.9.5
