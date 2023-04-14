@@ -5,13 +5,19 @@ jobs:
     name: Generate all docs
     runs-on: ubuntu-latest
     steps:
+      - name: Initial working dir
+        run: pwd
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: List directory
+      - name: Later working dir
+        run: pwd
+      - name: List top directory
         run: ls -al ${{ github.workspace }}
+      - name: List native_project directory
+        run: ls -al ${{ github.workspace }}/native_project
       - name: Generate native reference manual
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
-          working-directory: '${{ github.workspace }}/native_project/'
+          working-directory: '${{ github.workspace }}/native_project'
           doxyfile-path: '${{ github.workspace }}/docs/native'
 
