@@ -5,10 +5,10 @@ jobs:
     name: Generate all docs
     runs-on: ubuntu-latest
     steps:
-      - name: List directory
-        run: ls -al ${{ github.workspace }}
       - name: Check out repository code
         uses: actions/checkout@v3
+      - name: List directory
+        run: ls -al ${{ github.workspace }}
       - name: Generate native reference manual
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
