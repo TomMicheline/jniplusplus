@@ -1,5 +1,5 @@
 Modern c++ library for making JVM calls via JNI using variadic templates to reduce boilerplate,
-leverage automatic type conversion, and enable compile time type checking.
+leverage automatic type conversion, and enable compile-time type checking.
 
 ## Documentation
 
