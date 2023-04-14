@@ -1,4 +1,4 @@
-# libjni++ : C++ JNI without the boilerplate 
+# jni++ : C++ JNI without the boilerplate 
 
 Modern c++ library for making JVM calls via JNI using variadic templates to reduce boilerplate, 
 leverage automatic type conversion, and enable compile time type checking.
@@ -16,7 +16,7 @@ We can recreate the basic functionality of the following Java code:
     System.out.println("Does the pattern match text #2? %s", matcher2.matches() ? "YES" : "NO");
 ```
 
-First, lets see what this would look like using just plain JNI.  The only part of the libjni++ library 
+First, lets see what this would look like using just plain JNI.  The only part of the jni++ library 
 used in this code is `env()`.
 
 ```c++
@@ -49,7 +49,7 @@ used in this code is `env()`.
     std::cout << "[Plain JNI] Does the pattern match text #2? " << (result2 ? "YES" : "NO") << std::endl;
 ```
 
-Next, lets see what it looks like using libjni++:
+Next, lets see what it looks like using jni++:
 
 ```c++
     StaticMethod<jlocal, const std::string&> jCompilePattern("java.util.regex.Pattern", "compile");
@@ -64,7 +64,7 @@ Next, lets see what it looks like using libjni++:
     std::cout << "Does the pattern match text #2? " << (jMatcherMatches(matcher2) ? "YES" : "NO") << std::endl;
 ```
 
-Not only is the libjni++ code much shorter, it is easier to write and to understand.  When
+Not only is the jni++ code much shorter, it is easier to write and to understand.  When
 writing the plain JNI section, several errors were introduced in the signatures which can be tricky to 
 get right.  In particular, I didn't notice that `Pattern.matcher()` takes a `CharSequence` not a `String` which
 wasted time in the debugger figuring out which method lookup failed and why.
@@ -85,15 +85,15 @@ to build them and open them in the IDE.
 
 ## Examples
 
-There are a couple of examples under `native/examples` to illustrate how libjni++ can be used and
-experiment with either calling libjni++ code from other languages or calling into other JVM 
+There are a couple of examples under `native/examples` to illustrate how jni++ can be used and
+experiment with either calling jni++ code from other languages or calling into other JVM 
 languages.  It is a work-in-progress.  For `simpleapp`, you will probably need to pass the path to the
-`libjni++.jar` file on the command line.   For example, if you are have installed everying into the `install`
+`jni++.jar` file on the command line.   For example, if you are have installed everying into the `install`
 directory then in the `jniplusplus` directory you might do:
 ```shell
 # pwd
 /home/parallels/Projects/jniplusplus
-# ./install/bin/simpleapp install/lib/libjni++.jar 
+# ./install/bin/simpleapp install/lib/jni++.jar 
 Is this upper case? 'HELLO, WORLD.'
 [Plain JNI] Does the pattern match text #1? YES
 [Plain JNI] Does the pattern match text #2? NO

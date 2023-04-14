@@ -1,6 +1,6 @@
 //
 // c_wrappers.cpp
-// libjni++
+// jni++
 //
 // Created by Thomas Micheline Apr 04, 2023.
 //

@@ -1,6 +1,6 @@
 //
 // build.rs
-// libjni++
+// jni++
 //
 // Created by Thomas Micheline Apr 10, 2023.
 //

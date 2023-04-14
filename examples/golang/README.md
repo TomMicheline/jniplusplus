@@ -1,13 +1,13 @@
 # Go Example Application
 
-This is an experiment to see how libjni++ works when called from Go using cgo.  
+This is an experiment to see how jni++ works when called from Go using cgo.  
 
 ## Prerequisites
 
-1. Build Java library used by libjni++.  The gradle based build is in jniplusplus/java_project.
-   You can build it on the command line like `./gradlew :libjni++:build` or use an IDE that
+1. Build Java library used by jni++.  The gradle based build is in jniplusplus/java_project.
+   You can build it on the command line like `./gradlew :jni++:build` or use an IDE that
    supports gradle based projects like JetBrains's IDEA and execute the same task.
-2. Build the native libjni++ library.  You will need `cmake` and one way to do it is
+2. Build the native jni++ library.  You will need `cmake` and one way to do it is
    like this:
 ```shell
         # cd <install location>/jniplusplus/native_project
@@ -36,14 +36,14 @@ similar controls in most IDEs.
     # bash -x ./example-build.sh
        <snip out a bunch of output that isn't needed>
     + JVM_LIB_DIR=/Users/tom/.sdkman/candidates/java/current/lib/server
-    + JAR_PATH=/Users/tom/Projects/jniplusplus/native/../java/main/build/libs/libjni++.jar
+    + JAR_PATH=/Users/tom/Projects/jniplusplus/native/../java/main/build/libs/jni++.jar
     + CGO_CFLAGS='-std=c17 -I/Users/tom/.sdkman/candidates/java/current/include -I/Users/tom/.sdkman/candidates/java/current/include/darwin'
     + CGO_CXXFLAGS='-std=c++20 -I/Users/tom/.sdkman/candidates/java/current/include -I/Users/tom/.sdkman/candidates/java/current/include/darwin -I/Users/tom/Projects/jniplusplus/native/build/include'
     + CGO_LDFLAGS='-L/Users/tom/Projects/jniplusplus/native/build/lib -ljni++_static -L/Users/tom/.sdkman/candidates/java/current/lib/server -ljvm -Wl,-rpath,/Users/tom/.sdkman/candidates/java/current/lib/server'
-    + go build -ldflags '-X main.JarPath=/Users/tom/Projects/jniplusplus/native/../java/main/build/libs/libjni++.jar' .
+    + go build -ldflags '-X main.JarPath=/Users/tom/Projects/jniplusplus/native/../java/main/build/libs/jni++.jar' .
 ```
 2. The environment  variables you need to copy into your run configuration are the ones that 
    start with `CGO_`.
 3. Copy the `-ldflags '-X...'` into the go tools command line options setting.  Alternatively
-   you could pass the path to the libjni++.jar file to `go_example` as the first command line 
+   you could pass the path to the jni++.jar file to `go_example` as the first command line 
    argument.

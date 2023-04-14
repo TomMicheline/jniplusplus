@@ -1,4 +1,4 @@
-# libjni++ Java source files
+# jni++ Java source files
 
 ## Developing
 
@@ -9,6 +9,6 @@ paths.  It is setup as a composite build.
 ## Build
 
 The java sources are built using gradle.   You can either build it on the command 
-line like `./gradlew :libjni++:build` or use an IDE that supports gradle based projects like 
+line like `./gradlew :jni++:build` or use an IDE that supports gradle based projects like 
 JetBrains's IDEA.  However, just building the project in IDEA will not create the jar file
-nor install it.  You need to run the :libjni++:build target for that.
+nor install it.  You need to run the :jni++:build target for that.

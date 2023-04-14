@@ -2,17 +2,17 @@
 
 ##
 ## This script just tries to figure out the correct build paths for go including
-## JNI and libjni++
+## JNI and jni++
 ##
 
 SRC_DIR="$(realpath "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
 BASE_DIRDIR="$(realpath $SRC_DIR/../..)"
 INSTALL_DIR="${BASE_DIRDIR}/install"
-JAR_PATH="${INSTALL_DIR}/lib/libjni++.jar"
+JAR_PATH="${INSTALL_DIR}/lib/jni++.jar"
 
 if [ ! -f $INSTALL_DIR/include/JniPlusPlus.hpp ] || [ ! -f $INSTALL_DIR/lib/libjni++_static.a ] || [ ! -f $JAR_PATH ]
 then
-  echo "libjni++ must be built and installed in the local project directory before the "
+  echo "jni++ must be built and installed in the local project directory before the "
   echo "golang experiment can be built.  To build it do:"
   echo "# cd <installed directory>/jniplusplus/native_project"
   echo "# mkdir cmake-build-cl"
@@ -20,7 +20,7 @@ then
   echo "# cmake -S .. -B ."
   echo "# make install"
   echo "# cd ../java_project"
-  echo "# ./gradlew :libjni++:build"
+  echo "# ./gradlew :jni++:build"
   exit 1
 fi
 

@@ -1,4 +1,4 @@
-# libjni++ native code
+# jni++ native code
 
 ## Developing
 
@@ -24,10 +24,10 @@ the Build menu.
 
 In either case you should end up with the directory `jniplusplus/install` with top level `lib`, 
 `include`, and `bin` directories.  If everything worked, you should be able to execute 
-build/bin/simpleapp.  You will need to pass the path to `libjni++.jar` on the command line:
+build/bin/simpleapp.  You will need to pass the path to `jni++.jar` on the command line:
 ```shell
 # cd <install location>/jniplusplus
-# install/bin/simpleapp install/lib/libjni++.jar
+# install/bin/simpleapp install/lib/jni++.jar
 Is this upper case? 'HELLO, WORLD.'
 [Plain JNI] Does the pattern match text #1? YES
 [Plain JNI] Does the pattern match text #2? NO

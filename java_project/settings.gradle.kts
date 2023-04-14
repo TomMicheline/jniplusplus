@@ -1,6 +1,6 @@
 //
 // settings.gradle.kts
-// libjni++
+// jni++
 //
 // Created by Thomas Micheline Mar 26, 2023.
 //
@@ -10,8 +10,8 @@
 // This code is licensed under the 2-clause BSD license (see LICENSE.md for details)
 //
 
-rootProject.name = "jni++"
+rootProject.name = "java_project"
 
-includeBuild("../libjni++")
+includeBuild("../jni++")
 
 

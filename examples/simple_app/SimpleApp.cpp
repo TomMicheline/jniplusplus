@@ -1,6 +1,6 @@
 //
 // SimpleApp.cpp
-// libjni++
+// jni++
 //
 // Created by Thomas Micheline Mar 27, 2023.
 //
@@ -22,7 +22,7 @@ int main(int argc, const char **argv)
 {
     setMinimumLogLevel(jni_pp::LOG_WARN);
 
-    std::string path("../../../../java/main/build/libs/libjni++.jar");
+    std::string path("../../../../java/main/build/libs/jni++.jar");
 
     if (argc > 1) {
         path = argv[1];

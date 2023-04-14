@@ -1,13 +1,13 @@
 # Rust Example Application
 
-This is an experiment to see how libjni++ works when called from Rust using bindgen. 
+This is an experiment to see how jni++ works when called from Rust using bindgen. 
 
 ## Prerequisites
 
-1. Build Java library used by libjni++.  The gradle based build is in jniplusplus/java_project.
-   You can build it on the command line like `./gradlew :libjni++:build` or use an IDE that
+1. Build Java library used by jni++.  The gradle based build is in jniplusplus/java_project.
+   You can build it on the command line like `./gradlew :jni++:build` or use an IDE that
    supports gradle based projects like JetBrains's IDEA and execute the same task.
-2. Build the native libjni++ library.  You will need `cmake` and one way to do it is
+2. Build the native jni++ library.  You will need `cmake` and one way to do it is
    like this:
 ```shell
         # cd <install location>/jniplusplus/native_project

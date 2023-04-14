@@ -1,3 +1,3 @@
-# libjni++ User Manual
+# jni++ User Manual
 
 Coming soon.

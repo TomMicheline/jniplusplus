@@ -18,7 +18,7 @@ import (
 var JarPath string
 
 func main() {
-	// Make it possible to supply a new path to libjni++.jar
+	// Make it possible to supply a new path to jni++.jar
 	if len(os.Args) > 1 {
 		JarPath = os.Args[1]
 	}

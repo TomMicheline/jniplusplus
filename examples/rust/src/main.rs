@@ -1,6 +1,6 @@
 //
 // main.rs
-// libjni++
+// jni++
 //
 // Created by Thomas Micheline Apr 10, 2023.
 //
@@ -19,7 +19,7 @@ include!("bindings.rs");
 
 fn main() -> Result<(), NulError> {
     unsafe {
-        if !setupJava(CString::new("../../install/lib/libjni++.jar" )?.as_ptr()) {
+        if !setupJava(CString::new("../../install/lib/jni++.jar" )?.as_ptr()) {
             panic!("Failed to setup JNI: bailing!");
         }
         let pattern = javaCompilePattern( CString::new( ".*JNI.*rocks.*")?.as_ptr() );

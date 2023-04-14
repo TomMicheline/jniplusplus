@@ -1,6 +1,6 @@
 #
 # CMakeLists.txt
-# libjni++
+# jni++
 #
 # Created by Thomas Micheline Mar 26, 2023.
 #
