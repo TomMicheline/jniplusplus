@@ -5,6 +5,8 @@ jobs:
     name: Generate all docs
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - name: Generate native reference manual
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
