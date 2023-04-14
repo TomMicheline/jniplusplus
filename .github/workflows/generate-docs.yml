@@ -5,6 +5,8 @@ jobs:
     name: Generate all docs
     runs-on: ubuntu-latest
     steps:
+      - name: List directory
+        run: ls -al ${{ github.workspace }}
       - name: Check out repository code
         uses: actions/checkout@v3
       - name: Generate native reference manual
