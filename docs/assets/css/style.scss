@@ -5,7 +5,18 @@
 
 @media screen and (min-width: 42em) {
     .page-header {
-        padding: 1rem 2rem;
+        padding: 0.3rem 2rem;
     }
 }
 
+.project-name {
+    margin-bottom: 0 0 -.5rem;
+}
+
+.project-tagline {
+    margin: 0.35rem;
+}
+
+.page-header .btn {
+    padding: 0.5rem 1rem;
+}
