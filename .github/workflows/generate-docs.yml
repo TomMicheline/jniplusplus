@@ -1,5 +1,4 @@
 name: Generate reference manual with doxygen
-uses: mattnotmitt/doxygen-action@v1.9.5
 on: [push]
 jobs:
   gen-native-docs:
