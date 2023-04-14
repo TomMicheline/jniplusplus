@@ -41,6 +41,10 @@ jobs:
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
           working-directory: '/github/workspace/native_project'
+      - name: List _site
+        run: ls -l _site
+      - name: List _site/native
+        run: ls -l _site/native
       - name: Copy doxygen-awesome in
         run: cp extern/doxygen-awesome-css/doxygen-awesome.css _site/native
       - name: Upload artifact
