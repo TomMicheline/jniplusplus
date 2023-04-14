@@ -1,8 +1,11 @@
-title: "libjni++ : JNI without the boilerplate"
+title: "libjni++"
 author:
   name: Tom Micheline
   email: tom@tmich.dev
-description: "Project site for libjni++"
+description: "C++ JNI without the boilerplate"
 
 # Build settings
 remote_theme: pages-themes/slate
+exclude: ["CMakeLists.txt"]
+
+show_downloads: false
