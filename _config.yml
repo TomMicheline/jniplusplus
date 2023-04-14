@@ -1,0 +1,8 @@
+title: libjni++ : JNI without the boilerplate
+author:
+  name: Tom Micheline
+  email: tom@tmich.dev
+description: "Project site for libjni++"
+
+# Build settings
+remote_theme: pages-themes/cayman
