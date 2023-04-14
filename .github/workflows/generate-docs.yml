@@ -1,7 +1,12 @@
 name: Generate reference manual with doxygen
 uses: mattnotmitt/doxygen-action@v1.9.5
 on: [push]
-with:
-    working-directory: 'native_project/'
-    doxyfile-path: 'docs/native'
+jobs:
+  gen-native-docs:
+    steps:
+      - name: Generate native reference manual
+        uses: mattnotmitt/doxygen-action@v1.9.5
+          with:
+            working-directory: 'native_project/'
+            doxyfile-path: 'docs/native'
 
