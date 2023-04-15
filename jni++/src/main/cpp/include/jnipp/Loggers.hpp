@@ -14,6 +14,7 @@
 
 #include <string>
 #include <iostream>
+#include <memory>
 
 namespace jni_pp {
 
