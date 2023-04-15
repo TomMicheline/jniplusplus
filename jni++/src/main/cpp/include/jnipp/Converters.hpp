@@ -15,6 +15,8 @@
 #include <jni.h>
 #include <typeindex>
 #include <map>
+#include <string>
+#include <string.h>
 
 #include "jnipp/Utilities.hpp"
 #include "jnipp/References.hpp"
