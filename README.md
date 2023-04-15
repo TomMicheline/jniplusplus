@@ -76,22 +76,65 @@ Both of these examples are pulled directly from the simple example app included 
 ## Build
 
 Currently, the C++ code uses cmake and the Java code uses gradle.  Eventually, the build systems will 
-be unified, probably to gradle.  However, CLion gradle support seems to be a work in progress.  Using 
-different IDEs for the native and java code causes its own friction above and beyond that caused by 
-two different build systems.  Both IDEs use the same project files and so they collide.  To solve this
-there are project folders inside the top level folder (`java_project` and `native_project`) which link
-to the necessary parts of the build.
+be unified, probably to gradle.  However, CLion gradle support seems to be a work in progress and there
+don't seem to be any plans to enable using the gradle native build plugins for in the AGP.  
 
-Check the README.md file in the `java_project` and `native_project` directories for information on how 
-to build them and open them in the IDE.
+I use both CLion and IDEA to edit the two parts of the code.  Using different IDEs for the native and 
+java code causes its own friction above and beyond that caused by two different build systems.  Both IDEs 
+use the same project files, so they collide.  To solve this there is a project folder (`native_project`) 
+which links to the necessary parts of the native build.  The Java build files are in the top level folder.
+
+### Building the Java library
+
+You can either build it on the command  line like `./gradlew :jni++:build` or use an IDE that supports 
+gradle based projects like JetBrains's IDEA.  However, just building the project in IDEA will not create 
+the jar file nor install it.  You need to run the :jni++:build target for that.
+
+### Building the native library
+
+You will either need `cmake` and do something like this:
+```shell
+        # cd <install location>/jniplusplus/native_project
+        # mkdir cmake-build-cl
+        # cd cmake-build-cl
+        # cmake -S .. -B .
+        # make install
+```
+
+Or you can also use `CLion` (which has its own copy of cmake) by selecting `Install` from
+the Build menu.
+
+## Deveoping / IDE
+
+### Using Intellij IDEA to edit the JVM code
+
+To open the java code project in IDEA just open the `jniplusplus` directory (or the `jniplusplus/settings.gradle.kts`
+file) as a project.  IDEA will load the gradle build in that directory and use it to find all the necessary
+paths.
+
+### Using CLion to edit the C++ code
+
+To open the native code project in CLion just open the `native_project` directory as a project.
+CLion will load the CMakeLists.txt file in that directory and use it to find all the necessary
+paths.
+
+### Another option (Android Studio)
+
+Android Studio allows you to edit and build both C++ and Java code but it really works best with an Android project.
+There is, however, an Android example project in `examples/android` that links to the jni++ libraries in such a way that
+it is pretty convenient to edit both even if you aren't interested in the App code itself.
 
 ## Examples
 
-There are a couple of examples under `native/examples` to illustrate how jni++ can be used and
-experiment with either calling jni++ code from other languages or calling into other JVM 
-languages.  It is a work-in-progress.  For `simpleapp`, you will probably need to pass the path to the
-`jni++.jar` file on the command line.   For example, if you are have installed everying into the `install`
-directory then in the `jniplusplus` directory you might do:
+There are a couple of examples in the `examples` directory to illustrate how jni++ can be used and
+experiment with either calling jni++ code from other languages (currently rust and go) or calling into other JVM 
+languages (currently just Kotlin in the `android` example but more to come).  It is a work-in-progress.  
+
+If you followed the build steps above, you should end up with the directory `jniplusplus/install` with top level `lib`,
+`include`, and `bin` directories.  Assuming that all worked you can test it by running `install/bin/simpleapp` (source
+code in `examples/simple_app`) which will use both standard JNI calls and jni++ to do the same, simple calls into the
+JDK regex library. You will need to pass the path to `jni++.jar` on the command line:
+
 ```shell
 # pwd
 /home/parallels/Projects/jniplusplus
@@ -103,4 +146,3 @@ Does the pattern match text #1? YES
 Does the pattern match text #2? NO
 # 
 ```
-

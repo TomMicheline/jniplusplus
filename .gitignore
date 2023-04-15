@@ -44,3 +44,5 @@ build
 target
 /examples/rust/src/bindings.rs
 Cargo.lock
+local.properties
+

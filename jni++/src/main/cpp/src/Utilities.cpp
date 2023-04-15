@@ -95,6 +95,10 @@ std::mutex javaVM_mutex;
 
 bool createVM(jint version, const std::string& classPath)
 {
+#ifdef __ANDROID__
+    // TODO look into NativeHelper
+    return false;
+#else
     {
         std::lock_guard<std::mutex>  lock(javaVM_mutex);
 
@@ -135,6 +139,7 @@ bool createVM(jint version, const std::string& classPath)
     javaVM_cv.notify_all();
 
     return true;
+#endif
 }
 
 void destroyVM()
@@ -178,7 +183,12 @@ bool attachCurrentThread() {
     return false;
   }
 
-  if (vm->AttachCurrentThread(reinterpret_cast<void **>(&env), nullptr) != 0) {
+#ifdef __ANDROID__
+    typedef JNIEnv** AttachParamType;
+#else
+    typedef void** AttachParamType;
+#endif
+  if (vm->AttachCurrentThread(reinterpret_cast<AttachParamType>(&env), nullptr) != 0) {
     return false;
   }
 

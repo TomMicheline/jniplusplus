@@ -102,7 +102,7 @@ public class JavaToNativeExporter {
 
         // Check to see if the package is required to have ExportToNative.  By default,
         // they do not so that you can export the SDK or 3rd party libraries.
-        if (!doesPackageRequireExport(cls.getPackageName())) {
+        if (!doesPackageRequireExport(cls.getPackage().getName())) {
             return true;
         }
 

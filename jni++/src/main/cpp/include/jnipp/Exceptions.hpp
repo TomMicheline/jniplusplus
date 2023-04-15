@@ -15,6 +15,7 @@
 #include <jni.h>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace jni_pp {
 

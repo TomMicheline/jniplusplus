@@ -19,24 +19,25 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Java REQUIRED)
 
-#message("JAVA_HOME = ${JAVA_HOME}")
-#message("Java_JAVA_EXECUTABLE = ${Java_JAVA_EXECUTABLE}")
-#message("Java_JAVAC_EXECUTABLE = ${Java_JAVAC_EXECUTABLE}")
-#message("Java_JAVAH_EXECUTABLE = ${Java_JAVAH_EXECUTABLE}")
-#message("Java_JAVADOC_EXECUTABLE = ${Java_JAVADOC_EXECUTABLE}")
-#message("Java_VERSION_STRING = ${Java_VERSION_STRING}")
-#message("Java_VERSION = ${Java_VERSION}")
+set(JAVA_AWT_LIBRARY NotNeeded)
+set(JAVA_AWT_INCLUDE_PATH NotNeeded)
 
-find_package(JNI)
+if (CMAKE_SYSTEM_NAME MATCHES "Android")
+    set(JAVA_INCLUDE_PATH2 NotNeeded)
+    set(JAVA_JVM_LIBRARY NotNeeded)
+endif ()
 
-#if (JNI_FOUND)
-#    # -- JNI_INCLUDE_DIRS=C:/Program Files/Java/jdk1.8.0_191/include;C:/Program Files/Java/jdk1.8.0_191/include/win32;C:/Program Files/Java/jdk1.8.0_191/include
-#    # -- JNI_LIBRARIES=C:/Program Files/Java/jdk1.8.0_191/lib/jawt.lib;C:/Program Files/Java/jdk1.8.0_191/lib/jvm.lib
-#    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-#    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-#endif()
+find_package(JNI REQUIRED)
 
-get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
+if (CMAKE_SYSTEM_NAME MATCHES "Android")
+    # make it empty so it doesnt try to link to "NotNeeded"
+    set(JAVA_JVM_LIBRARY "")
+    set(rpath_flags "")
+else ()
+    get_filename_component(JAVA_JVM_DIRECTORY ${JAVA_JVM_LIBRARY} DIRECTORY)
+    set(rpath_flags "-Wl,-rpath,${JAVA_JVM_DIRECTORY}")
+endif ()
+
 
 set (libheaders
         include/JniPlusPlus.hpp
@@ -68,12 +69,12 @@ add_library(jni++_static STATIC $<TARGET_OBJECTS:objlib>)
 target_link_libraries(
         jni++
         ${JAVA_JVM_LIBRARY}
-        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
+        ${rpath_flags}
 )
 target_link_libraries(
         jni++_static
         ${JAVA_JVM_LIBRARY}
-        "-Wl,-rpath,${JAVA_JVM_DIRECTORY}"
+        ${rpath_flags}
 )
 
 set_target_properties(jni++ PROPERTIES PUBLIC_HEADER "${libheaders}")
