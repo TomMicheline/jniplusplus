@@ -75,6 +75,18 @@ Both of these examples are pulled directly from the simple example app included 
 
 ## Build
 
+First, make sure you have the submodules checked out.  If you did not use --recursive (or similar) on
+your clone you need to get the submodules with something like:
+```shell
+# git submodule update --init --recursive
+Submodule 'extern/doxygen-awesome-css' (https://github.com/jothepro/doxygen-awesome-css.git) registered for path 'extern/doxygen-awesome-css'
+Submodule 'extern/googletest' (https://github.com/google/googletest.git) registered for path 'extern/googletest'
+Cloning into '/home/vagrant/jniplusplus/extern/doxygen-awesome-css'...
+Cloning into '/home/vagrant/jniplusplus/extern/googletest'...
+Submodule path 'extern/doxygen-awesome-css': checked out 'a7f7891706c656903326f79baf74beb2b711688d'
+Submodule path 'extern/googletest': checked out 'b796f7d44681514f58a683a3a71ff17c94edb0c1'
+#
+```
 Currently, the C++ code uses cmake and the Java code uses gradle.  Eventually, the build systems will 
 be unified, probably to gradle.  However, CLion gradle support seems to be a work in progress and there
 don't seem to be any plans to enable using the gradle native build plugins for in the AGP.  
