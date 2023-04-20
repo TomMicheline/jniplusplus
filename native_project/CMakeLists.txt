@@ -15,7 +15,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(jni++)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(install_dir "${CMAKE_CURRENT_LIST_DIR}/../install")
 set(lib_src_dir "${CMAKE_CURRENT_LIST_DIR}/../jni++/src/main/cpp")

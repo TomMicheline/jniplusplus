@@ -13,7 +13,7 @@
 
 namespace jni_pp {
 
-jvalue convertToJValue(std::string& arg) {
+jvalue convertToJValue(const std::string& arg) {
     jvalue jv;
     jv.l = env()->NewStringUTF(arg.c_str());
     return jv;
@@ -91,7 +91,7 @@ jstring toJString(const char *s) {
     return jstring(convertToJValue(s).l);
 }
 
-jstring toJString(std::string& s) {
+jstring toJString(const std::string& s) {
     return jstring(convertToJValue(s).l);
 }
 

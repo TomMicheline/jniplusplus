@@ -37,77 +37,11 @@ protected:
 
 };
 
-template <typename CppType>
-struct SwigWrapper : WrapperMapper {
-public:
-	static void mapTo(const std::string& className);
-	static const std::string& getClassName();
-	static bool isMapped();
-};
-
-template <typename CppType>
-struct SwigPtr {
-	SwigPtr(CppType* ptr, bool passOwnership) : value(ptr), ownsMem(passOwnership) {}
-	CppType* value;
-	bool ownsMem;
-};
-
-template <typename CppType>
-struct SwigRef {
-	SwigRef(CppType& ref) : value(ref) {}
-	CppType& value;
-};
-
-template <typename CppElementType>
-struct SwigArray {
-	SwigArray(CppElementType* arry, int len, bool globalElements = true) : value(arry), length(len), globalElements(globalElements) {}
-
-	int length;
-	bool globalElements;
-	CppElementType* value;
-};
-
-template <typename CppType>
-SwigPtr<CppType> getNullSwigPointer() {
-	return SwigPtr<CppType>(nullptr, false);
-}
-
 template <typename DeclaredReturnType>
 struct Actualized {
     typedef DeclaredReturnType type;
 };
 template<> struct Actualized<jglobal> { typedef jobject type; };
-template <typename CppType> struct Actualized<SwigWrapper<CppType>> { typedef CppType* type; };
-
-template <typename DeclaredParameterType>
-struct ActualizedParameter {
-	typedef DeclaredParameterType type;
-};
-template<> struct ActualizedParameter<jglobal> { typedef jobject type; };
-
-// implemented in JniUtilities.cpp
-template <typename CppType>
-CppType* getSwigPointer(jobject obj);
-
-template <typename CppType>
-struct ToCppConverter {
-    template<typename JavaType>
-    static typename Actualized<CppType>::type convertToCpp(JavaType val);
-};
-template <typename CppReturnType>
-struct ToCppConverter<SwigWrapper<CppReturnType>> {
-	template <typename CppType>
-	static CppReturnType* convertToCpp(jobject val) {
-		return getSwigPointer<CppReturnType>(val);
-	}
-};
-
-template <typename JavaType>
-struct ToJavaConverter {
-    template <typename CppType>
-    static JavaType convertToJava(CppType value);
-};
-
 
 template<typename CppType>
 struct CppToJava {
@@ -119,51 +53,32 @@ struct JavaToArray {
     typedef jarray type;
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//////////
-//////////
-//////////  Implementation details
-//////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
+// implemented in JniUtilities.cpp
+template <typename CppType>
+CppType* getSwigPointer(jobject obj);
 
 template <typename CppType>
-void SwigWrapper<CppType>::mapTo(const std::string& className) {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto index = std::type_index(typeid(CppType));
-	wrapperMap.emplace(index, getSwigPackage() + "." + className);
-}
-
+struct ToCppConverter {
+    template<typename JavaType>
+    static typename Actualized<CppType>::type convertToCpp(JavaType val);
+};
 template <typename CppType>
-const std::string& SwigWrapper<CppType>::getClassName() {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto& ti = typeid(CppType);
-	auto index = std::type_index(ti);
-	auto nameIt = wrapperMap.find(index);
-	if (nameIt == wrapperMap.end()) throw std::runtime_error(std::string("Attempt to construct SWIG class with no mapping registered: ") + ti.name());
-	return wrapperMap[index];
-}
-
-template <typename CppType>
-bool SwigWrapper<CppType>::isMapped() {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto& ti = typeid(CppType);
-	auto index = std::type_index(ti);
-	auto nameIt = wrapperMap.find(index);
-	return nameIt != wrapperMap.end();
-}
+struct ToJavaConverter {
+    template <typename JavaType>
+    static JavaType convertToJava(typename Actualized<CppType>::type value);
+};
 
 
-template <typename CppType>
-jvalue convertToJValue(SwigPtr<CppType> arg);
-template <typename CppType>
-jvalue convertToJValue(SwigRef<CppType> arg);
-template <typename CppElementType>
-jvalue convertToJValue(SwigArray<CppElementType> arg);
+//#################################################################################################
+//#################################################################################################
+//########
+//########                  Implementation details
+//########
+//#################################################################################################
+//#################################################################################################
 
-jvalue convertToJValue(std::string& arg);
+
+jvalue convertToJValue(const std::string& arg);
 jvalue convertToJValue(const char * arg);
 jvalue convertToJValue(bool arg);
 jvalue convertToJValue(unsigned char arg);
@@ -178,7 +93,7 @@ jvalue convertToJValue(int64_t arg);
 jvalue convertToJValue(jobject arg);
 
 jstring toJString(const char *s);
-jstring toJString(std::string& s);
+jstring toJString(const std::string& s);
 
 inline std::string jStringToString(jstring s) {
     if (s == nullptr) return "";
@@ -197,18 +112,24 @@ inline char * jStringToCharPtr(jstring s) {
 	return r;
 }
 
-
-
-inline void gatherArgs(vector<jvalue>& javaArgs) {
-}
+template <typename... Args>
+struct GatherArguments;
 
 template <typename ArgType, typename... Args>
-void gatherArgs(vector<jvalue>& javaArgs, ArgType arg1, Args... remainingArgs) {
-	jvalue jarg1 = convertToJValue(arg1);
-	javaArgs.push_back(jarg1);
-	gatherArgs(javaArgs, remainingArgs...);
-}
+struct GatherArguments<ArgType, Args...> {
+    static void gather(vector<jvalue> &javaArgs, typename Actualized<ArgType>::type arg1, typename Actualized<Args>::type ...remainingArgs) {
+        typedef typename CppToJava<ArgType>::type JavaType;
+        jvalue jarg1 = convertToJValue(ToJavaConverter<ArgType>::template convertToJava<JavaType>(arg1));
+        javaArgs.push_back(jarg1);
+        GatherArguments<Args...>::gather(javaArgs, remainingArgs...);
+    }
+};
 
+template <>
+struct GatherArguments<> {
+    static void gather(vector<jvalue> &javaArgs) {
+    }
+};
 
 template<> struct CppToJava<std::string>  { typedef jobject type; };
 template<> struct CppToJava<char *> { typedef jobject type; };
@@ -261,27 +182,39 @@ inline const char * ToCppConverter<const char *>::convertToCpp(jobject val) {
     return result;
 }
 
-template <typename JavaType>
 template <typename CppType>
-JavaType ToJavaConverter<JavaType>::convertToJava(CppType val) {
+template <typename JavaType>
+JavaType ToJavaConverter<CppType>::convertToJava(typename Actualized<CppType>::type val) {
     return JavaType(val);
 }
 
 template <>
 template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(std::string val) {
+inline jchar ToJavaConverter<char>::convertToJava(char val) {
+    return jchar(val);
+}
+
+template <>
+template <>
+inline jobject ToJavaConverter<std::string>::convertToJava(std::string val) {
     return toJString(val);
 }
 
 template <>
 template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(const char * val) {
+inline jobject ToJavaConverter<const std::string&>::convertToJava(const std::string& val) {
     return toJString(val);
 }
 
 template <>
 template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(char * val) {
+inline jobject ToJavaConverter<const char *>::convertToJava(const char * val) {
+    return toJString(val);
+}
+
+template <>
+template <>
+inline jobject ToJavaConverter<char *>::convertToJava(char * val) {
     return toJString(val);
 }
 

@@ -17,6 +17,8 @@
 #include "JniPlusPlus.hpp"
 #include "jnipp/Utilities.hpp"
 #include "jnipp/References.hpp"
+//#include "jnipp/SwigConverters.hpp"
+//#include "jnipp/SwigMethods.hpp"
 
 #pragma GCC diagnostic ignored "-Wformat-security"
 
@@ -399,14 +401,6 @@ FieldInfo  *getFieldInfo(const std::string& className, const std::string& fieldN
         javaFieldCache[key] = fi;
     }
     return fi;
-}
-
-template <typename CppType>
-CppType* getSwigPointer(jobject obj) {
-    static InstanceField<long> pointerField(SwigWrapper<CppType>::getClassName());
-    auto pointerAsLong = pointerField.get(obj);
-    return *((CppType**)&pointerAsLong);
-//    return reinterpret_cast<CppType*>(pointerAsLong);
 }
 
 static std::string javaBasePackageName;

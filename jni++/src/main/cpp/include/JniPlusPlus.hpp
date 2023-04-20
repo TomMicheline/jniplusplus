@@ -79,7 +79,7 @@ public:
     /// type specific invocation logic.
     /// @param args The arguments to pass to the JVM method
     /// @return The value returned by the JVM method, converted to the ReturnType C++ type.
-	typename Actualized<ReturnType>::type operator()(Args ...args);
+	typename Actualized<ReturnType>::type operator()(typename Actualized<Args>::type ...args);
 
 protected:
 
@@ -256,7 +256,7 @@ public:
     ~InstanceField() {}
 
     typename Actualized<FieldType>::type get(jobject object);
-    void set(jobject object, typename ActualizedParameter<FieldType>::type value);
+    void set(jobject object, typename Actualized<FieldType>::type value);
 };
 
 template <typename FieldType>
@@ -273,7 +273,7 @@ public:
     ~SingletonField() {}
 
     typename Actualized<FieldType>::type get();
-    void set(typename ActualizedParameter<FieldType>::type value);
+    void set(typename Actualized<FieldType>::type value);
 };
 
 template <typename FieldType>
@@ -288,7 +288,7 @@ public:
     ~StaticField() {}
 
     typename Actualized<FieldType>::type get();
-    void set(typename ActualizedParameter<FieldType>::type value);
+    void set(typename Actualized<FieldType>::type value);
 };
 
 
@@ -342,7 +342,7 @@ public:
 
     typename Actualized<CppElementType>::type get(jobjectArray array, int index);
 
-    void set(jobjectArray array, int index, typename ActualizedParameter<CppElementType>::type value);
+    void set(jobjectArray array, int index, typename Actualized<CppElementType>::type value);
 
 private:
     const std::string className;
@@ -351,86 +351,25 @@ private:
     std::once_flag runOnce;
 };
 
-
-template <typename ReturnType, typename SwigClass>
-class SwigConstructor : public Constructor<ReturnType, long, bool> {
-public:
-    SwigConstructor(const std::string& className) : Constructor<ReturnType, long, bool>(getSwigPackage() + "." + className, "(JZ)V") {}
-    SwigConstructor() : Constructor<ReturnType, long, bool>(SwigWrapper<SwigClass>::getClassName(), "(JZ)V") {}
-
-    typename Actualized<ReturnType>::type operator()(SwigClass* ptr, bool ownMemory) {
-        return Method<ReturnType, long, bool>::operator()(reinterpret_cast<long>(ptr), ownMemory);
-    }
-    typename Actualized<ReturnType>::type operator()(SwigClass& ref) {
-        return Method<ReturnType, long, bool>::operator()(reinterpret_cast<long>(&ref), false);
-    }
-
-    static typename Actualized<ReturnType>::type construct(SwigClass* ptr, bool ownMem);
-    static typename Actualized<ReturnType>::type construct(SwigClass& ref);
-};
-
-template <typename ReturnType>
-class SwigEnum : public StaticMethod<ReturnType, int> {
-public:
-    SwigEnum(const std::string& className) : StaticMethod<ReturnType, int>(getSwigPackage() + className, "swigToEnum") {}
-};
-
-template <typename CppElementType>
-class SwigObjectArray {
-public:
-    SwigObjectArray() : className(SwigWrapper<CppElementType>::getClassName()) {}
-    SwigObjectArray(const std::string& className) : className(getSwigPackage() + "." + className) {}
-
-    jclass getClass() {
-        call_once(runOnce, [&]{
-            class_ = jni_pp::getClass(className);
-        });
-        return class_;
-    }
-
-    template <typename ReturnType>
-    jobjectArray create(int size, SwigPtr<CppElementType> initialElement = getNullSwigPointer<CppElementType>());
-    template <typename ReturnType>
-    jobjectArray create(int size, SwigRef<CppElementType> initialElement);
-    template <typename ReturnType, typename ElementScopeType>
-    jobjectArray create(CppElementType cppArray[], int len);
-
-    CppElementType* get(jobjectArray array, int index);
-
-    template <typename ElementScopeType>
-    void set(jobjectArray array, int index, SwigPtr<CppElementType> value);
-    template <typename ElementScopeType>
-    void set(jobjectArray array, int index, SwigRef<CppElementType> value);
-
-private:
-    std::string className;
-
-    jclass class_;
-    std::once_flag runOnce;
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//////////
-//////////                   Implementation details
-//////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-
+//#################################################################################################
+//#################################################################################################
+//########
+//########                  Implementation details
+//########
+//#################################################################################################
+//#################################################################################################
 
 template <typename ReturnType, typename... Args>
 typename Actualized<ReturnType>::type StaticMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
-	return HighLevelInvoker<ReturnType>::invoke(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs, refs);
+    return HighLevelInvoker<ReturnType>::invoke(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs, refs);
 }
 
 template <typename ReturnType, typename... Args>
 typename Actualized<ReturnType>::type InstanceMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
-	jvalue jv = javaArgs.front();
-	jobject object = jv.l;
-	javaArgs.erase(javaArgs.begin(), javaArgs.begin() + 1);
-	return HighLevelInvoker<ReturnType>::invoke(object, getMethodInfo()->methodID, javaArgs, refs);
+    jvalue jv = javaArgs.front();
+    jobject object = jv.l;
+    javaArgs.erase(javaArgs.begin(), javaArgs.begin() + 1);
+    return HighLevelInvoker<ReturnType>::invoke(object, getMethodInfo()->methodID, javaArgs, refs);
 }
 
 template <typename ReturnType, typename... Args>
@@ -445,12 +384,12 @@ typename Actualized<ReturnType>::type SingletonMethod<ReturnType, Args...>::invo
 
 template <typename ReturnType, typename... Args>
 jobject Constructor<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
-	return Actualizer<ReturnType>::passThroughOrConvert(env()->NewObjectA(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs.data()), refs);
+    return Actualizer<ReturnType>::passThroughOrConvert(env()->NewObjectA(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs.data()), refs);
 }
 
 
 template <typename ReturnType, typename... Args>
-typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(Args ...args) {
+typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(typename Actualized<Args>::type ...args) {
     numParameters = sizeof...(args) - numReservedParameters;
     vector<jvalue> javaArgs;
     javaArgs.reserve(numParameters + numReservedParameters);
@@ -463,8 +402,8 @@ typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(A
     // that will still be valid in the calling frame.
     //
     JniLocalReferenceScope refs(numParameters + numReservedParameters + 1);
-    gatherArgs(javaArgs, args...);
-	return invoke(javaArgs, refs);
+    GatherArguments<Args...>::gather(javaArgs, args...);
+    return invoke(javaArgs, refs);
 }
 
 template <typename FieldType>
@@ -474,7 +413,7 @@ typename Actualized<FieldType>::type InstanceField<FieldType>::get(jobject objec
 }
 
 template <typename FieldType>
-void InstanceField<FieldType>::set(jobject object, typename ActualizedParameter<FieldType>::type value) {
+void InstanceField<FieldType>::set(jobject object, typename Actualized<FieldType>::type value) {
     JniLocalReferenceScope refs;
     HighLevelAccessor<FieldType>::set(object, getFieldInfo()->fieldID, value);
 }
@@ -489,7 +428,7 @@ typename Actualized<FieldType>::type SingletonField<FieldType>::get() {
 }
 
 template <typename FieldType>
-void SingletonField<FieldType>::set(typename ActualizedParameter<FieldType>::type value) {
+void SingletonField<FieldType>::set(typename Actualized<FieldType>::type value) {
     JniLocalReferenceScope refs;
     jobject object = getSingletonObject(className);
     if (!object) throw new std::runtime_error(std::string("Singleton ") + className + " not available when referenced by SingletonField.");
@@ -503,7 +442,7 @@ typename Actualized<FieldType>::type StaticField<FieldType>::get() {
 }
 
 template <typename FieldType>
-void StaticField<FieldType>::set(typename ActualizedParameter<FieldType>::type value) {
+void StaticField<FieldType>::set(typename Actualized<FieldType>::type value) {
     JniLocalReferenceScope refs;
     HighLevelAccessor<FieldType>::set(getFieldInfo()->class_, getFieldInfo()->fieldID, value);
 }
@@ -522,36 +461,6 @@ jobjectArray ObjectArray<CppElementType>::create(int size, jobject initialElemen
     JniLocalReferenceScope refs;
     jarray array = env()->NewObjectArray(size, getClass(), initialElement);
     return static_cast<jobjectArray>(Actualizer<ReturnType>::passThroughOrConvert(array, refs));
-}
-
-
-template <typename CppElementType>
-template <typename ReturnType>
-jobjectArray SwigObjectArray<CppElementType>::create(int size, SwigPtr<CppElementType> initialElement) {
-    JniLocalReferenceScope refs;
-    jobject jInitial = nullptr;
-    if (initialElement.value) {
-        jInitial = SwigConstructor<ReturnType, CppElementType>::construct(initialElement.value, initialElement.ownsMem);
-    }
-    jarray array = env()->NewObjectArray(size, getClass(), jInitial);
-    return static_cast<jobjectArray>(Actualizer<ReturnType>::passThroughOrConvert(array, refs));
-}
-template <typename CppElementType>
-template <typename ReturnType>
-jobjectArray SwigObjectArray<CppElementType>::create(int size, SwigRef<CppElementType> initialElement) {
-    JniLocalReferenceScope refs;
-    jobject jInitial = SwigConstructor<ReturnType, CppElementType>::construct(initialElement.value);
-    jarray array = env()->NewObjectArray(size, getClass(), jInitial);
-    return static_cast<jobjectArray>(Actualizer<ReturnType>::passThroughOrConvert(array, refs));
-}
-template <typename CppElementType>
-template <typename ReturnType, typename ElementScopeType>
-jobjectArray SwigObjectArray<CppElementType>::create(CppElementType cppArray[], int len) {
-    jobjectArray result = create<ReturnType>(len);
-    for (auto i=0; i<len; ++i) {
-        set<ElementScopeType>(result, i, SwigRef<CppElementType>(cppArray[i]));
-    }
-    return result;
 }
 
 
@@ -629,69 +538,11 @@ typename Actualized<CppElementType>::type ObjectArray<CppElementType>::get(jobje
 }
 
 template <typename CppElementType>
-CppElementType* SwigObjectArray<CppElementType>::get(jobjectArray array, int index) {
-    JniLocalReferenceScope refs;
-    jobject javaReturn =  env()->GetObjectArrayElement(array, index);
-    return getSwigPointer<CppElementType>(javaReturn);    
-}
-
-template <typename CppElementType>
-void ObjectArray<CppElementType>::set(jobjectArray array, int index, typename ActualizedParameter<CppElementType>::type  value) {
+void ObjectArray<CppElementType>::set(jobjectArray array, int index, typename Actualized<CppElementType>::type  value) {
     JniLocalReferenceScope refs;
     jobject javaValue = convertToJValue(value);
     env()->SetObjectArrayElement(array, index, javaValue);
 }
 
-template <typename CppElementType>
-template <typename ElementScopeType>
-void SwigObjectArray<CppElementType>::set(jobjectArray array, int index, SwigPtr<CppElementType> value) {
-    JniLocalReferenceScope refs;
-    jobject javaValue = SwigConstructor<ElementScopeType, CppElementType>::construct(value.value, value.ownsMem);
-    env()->SetObjectArrayElement(array, index, javaValue);
-}
-template <typename CppElementType>
-template <typename ElementScopeType>
-void SwigObjectArray<CppElementType>::set(jobjectArray array, int index, SwigRef<CppElementType> value) {
-    JniLocalReferenceScope refs;
-    jobject javaValue = SwigConstructor<ElementScopeType, CppElementType>::construct(value.value);
-    env()->SetObjectArrayElement(array, index, javaValue);
-}
-
-
-template <typename ReturnType, typename SwigClass>
-typename Actualized<ReturnType>::type SwigConstructor<ReturnType, SwigClass>::construct(SwigClass* ptr, bool ownMem) {
-    static SwigConstructor<ReturnType, SwigClass> ctor;
-    return ctor(ptr, ownMem);
-}
-
-template <typename ReturnType, typename SwigClass>
-typename Actualized<ReturnType>::type SwigConstructor<ReturnType, SwigClass>::construct(SwigClass& ref) {
-    static SwigConstructor<ReturnType, SwigClass> ctor;
-    return ctor(ref);
-}
-
-template <typename CppType>
-jvalue convertToJValue(SwigRef<CppType> arg) {
-    static SwigConstructor<jlocal, CppType> ctor;
-    return convertToJValue(ctor(arg.value));
-}
-
-template <typename CppType>
-jvalue convertToJValue(SwigPtr<CppType> ptr) {
-    static SwigConstructor<jlocal, CppType> ctor;
-    return convertToJValue(ctor(ptr.value, ptr.ownsMem));
-}
-
-template <typename CppElementType>
-jvalue convertToJValue(SwigArray<CppElementType> arry) {
-    static SwigObjectArray<CppElementType> creator;
-    jobjectArray result;
-    if (arry.globalElements)
-        result = creator.template create<jlocal, jglobal>(arry.value, arry.length);
-    else
-        result = creator.template create<jlocal, jlocal>(arry.value, arry.length);
-    return convertToJValue(result);
-}
-
-
 } // namespace jni_pp
+
