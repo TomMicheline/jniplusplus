@@ -34,6 +34,9 @@
 # MacOS
 .DS_Store
 
+# Generated
+jni++/src/test/java/dev/tmich/jnipp/test/swig
+
 # IDE
 .idea
 cmake-build-*

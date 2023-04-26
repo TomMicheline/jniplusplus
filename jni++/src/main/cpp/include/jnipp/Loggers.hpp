@@ -39,7 +39,7 @@ protected:
 
 class JniStreamLogger : public JniLogger {
 public:
-    explicit JniStreamLogger(std::ostream& out = std::cerr) : mOut(out) {}
+    explicit JniStreamLogger(std::ostream& out = std::cout) : mOut(out) {}
 
 protected:
     void log(LogPriority level, const std::string& msg) override;

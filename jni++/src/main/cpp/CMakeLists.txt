@@ -15,7 +15,7 @@ cmake_minimum_required(VERSION 3.22)
 project(libjni++)
 
 set(CMAKE_INSTALL_PREFIX "${install_dir}" CACHE PATH "..." FORCE)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Java REQUIRED)
 
@@ -41,25 +41,28 @@ endif ()
 
 set (libheaders
         include/JniPlusPlus.hpp
+        include/jnipp/BoxedPrimatives.hpp
         include/jnipp/Converters.hpp
-        include/jnipp/InvokersHighLevel.hpp
-        include/jnipp/Utilities.hpp
-        include/jnipp/InvokersLowLevel.hpp
-        include/jnipp/Loggers.hpp
         include/jnipp/Exceptions.hpp
-        include/jnipp/JvmNativeImpls.hpp
+        include/jnipp/InvokersHighLevel.hpp
+        include/jnipp/InvokersLowLevel.hpp
+        include/jnipp/JniMapping.hpp
+        include/jnipp/Loggers.hpp
         include/jnipp/Singletons.hpp
+        include/jnipp/SwigSupport.hpp
         include/jnipp/ThreadWrapper.hpp
+        include/jnipp/Utilities.hpp
         )
 
 set(libsrc
-        src/Utilities.cpp
-        src/Loggers.cpp
+        src/Converters.cpp
         src/Exceptions.cpp
         src/JvmNativeImpls.cpp
+        src/Loggers.cpp
         src/Singletons.cpp
         src/ThreadWrapper.cpp
-        src/Converters.cpp)
+        src/Utilities.cpp
+        )
 
 add_library(objlib OBJECT ${libsrc} ${libheaders})
 set_property(TARGET objlib PROPERTY POSITION_INDEPENDENT_CODE 1)

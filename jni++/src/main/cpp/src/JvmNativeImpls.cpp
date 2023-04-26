@@ -21,11 +21,18 @@ using namespace jni_pp;
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "UnusedParameter"
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+extern "C"
+jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     log_print(LOG_DEBUG, "Native: JNI_OnLoad called.  Caching VM.");
     jni_pp::setVM(vm);
     initializeEnvironment();
-    return JNI_VERSION_1_6;
+    return getCurrentVersion();
+}
+
+extern "C"
+jint JNI_OnLoad_jniplusplus(JavaVM *vm, void *reserved) {
+    log_print(LOG_DEBUG, "Native: JNI_OnLoad_jniplusplus called.  Caching VM.");
+    return getCurrentVersion();
 }
 
 extern "C"

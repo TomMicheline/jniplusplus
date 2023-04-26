@@ -30,88 +30,29 @@ typedef jobject jlocal;
 
 namespace jni_pp {
 
-struct WrapperMapper {
-protected:
-	static std::mutex mutex;
-	static std::map<std::type_index, const std::string > wrapperMap;
-
+template<typename CppType>
+struct IsGlobalRef {
+    static constexpr bool value = false;
 };
-
-template <typename CppType>
-struct SwigWrapper : WrapperMapper {
-public:
-	static void mapTo(const std::string& className);
-	static const std::string& getClassName();
-	static bool isMapped();
+template<>
+struct IsGlobalRef<jglobal> {
+    static constexpr bool value = true;
 };
-
-template <typename CppType>
-struct SwigPtr {
-	SwigPtr(CppType* ptr, bool passOwnership) : value(ptr), ownsMem(passOwnership) {}
-	CppType* value;
-	bool ownsMem;
-};
-
-template <typename CppType>
-struct SwigRef {
-	SwigRef(CppType& ref) : value(ref) {}
-	CppType& value;
-};
-
-template <typename CppElementType>
-struct SwigArray {
-	SwigArray(CppElementType* arry, int len, bool globalElements = true) : value(arry), length(len), globalElements(globalElements) {}
-
-	int length;
-	bool globalElements;
-	CppElementType* value;
-};
-
-template <typename CppType>
-SwigPtr<CppType> getNullSwigPointer() {
-	return SwigPtr<CppType>(nullptr, false);
-}
-
-template <typename DeclaredReturnType>
-struct Actualized {
-    typedef DeclaredReturnType type;
-};
-template<> struct Actualized<jglobal> { typedef jobject type; };
-template <typename CppType> struct Actualized<SwigWrapper<CppType>> { typedef CppType* type; };
-
-template <typename DeclaredParameterType>
-struct ActualizedParameter {
-	typedef DeclaredParameterType type;
-};
-template<> struct ActualizedParameter<jglobal> { typedef jobject type; };
-
-// implemented in JniUtilities.cpp
-template <typename CppType>
-CppType* getSwigPointer(jobject obj);
-
-template <typename CppType>
-struct ToCppConverter {
-    template<typename JavaType>
-    static typename Actualized<CppType>::type convertToCpp(JavaType val);
-};
-template <typename CppReturnType>
-struct ToCppConverter<SwigWrapper<CppReturnType>> {
-	template <typename CppType>
-	static CppReturnType* convertToCpp(jobject val) {
-		return getSwigPointer<CppReturnType>(val);
-	}
-};
-
-template <typename JavaType>
-struct ToJavaConverter {
-    template <typename CppType>
-    static JavaType convertToJava(CppType value);
-};
-
 
 template<typename CppType>
-struct CppToJava {
-    typedef jobject type;
+struct JniSignature {
+    std::string signature() { return "unknown"; }
+    std::string typeName() { return "unknown"; }
+};
+
+template <typename DeclaredCppType>
+struct JniTypeMapping {
+    using actualCppType = DeclaredCppType;
+    using jniType = DeclaredCppType;
+};
+template<> struct JniTypeMapping<jglobal> {
+    using actualCppType = jobject;
+    using jniType = jobject;
 };
 
 template<typename JavaType>
@@ -119,51 +60,35 @@ struct JavaToArray {
     typedef jarray type;
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-//////////
-//////////
-//////////  Implementation details
-//////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
+// Default implementations just cast to the other type
+template <typename DeclaredCppType>
+struct ToCppConverter {
+    using cppType = typename JniTypeMapping<DeclaredCppType>::actualCppType;
+    using jniType = typename JniTypeMapping<DeclaredCppType>::jniType;
+    static cppType convertToCpp(jniType val) {
+        return cppType(val);
+    }
+};
+template <typename DeclaredCppType>
+struct ToJavaConverter {
+    using cppType = typename JniTypeMapping<DeclaredCppType>::actualCppType;
+    using  jniType = typename JniTypeMapping<DeclaredCppType>::jniType;
+    static jniType convertToJava(cppType value) {
+        return jniType(value);
+    }
+};
 
 
-template <typename CppType>
-void SwigWrapper<CppType>::mapTo(const std::string& className) {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto index = std::type_index(typeid(CppType));
-	wrapperMap.emplace(index, getSwigPackage() + "." + className);
-}
-
-template <typename CppType>
-const std::string& SwigWrapper<CppType>::getClassName() {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto& ti = typeid(CppType);
-	auto index = std::type_index(ti);
-	auto nameIt = wrapperMap.find(index);
-	if (nameIt == wrapperMap.end()) throw std::runtime_error(std::string("Attempt to construct SWIG class with no mapping registered: ") + ti.name());
-	return wrapperMap[index];
-}
-
-template <typename CppType>
-bool SwigWrapper<CppType>::isMapped() {
-	std::lock_guard<std::mutex> lg(mutex);
-	auto& ti = typeid(CppType);
-	auto index = std::type_index(ti);
-	auto nameIt = wrapperMap.find(index);
-	return nameIt != wrapperMap.end();
-}
+//#################################################################################################
+//#################################################################################################
+//########
+//########                  Implementation details
+//########
+//#################################################################################################
+//#################################################################################################
 
 
-template <typename CppType>
-jvalue convertToJValue(SwigPtr<CppType> arg);
-template <typename CppType>
-jvalue convertToJValue(SwigRef<CppType> arg);
-template <typename CppElementType>
-jvalue convertToJValue(SwigArray<CppElementType> arg);
-
-jvalue convertToJValue(std::string& arg);
+jvalue convertToJValue(const std::string& arg);
 jvalue convertToJValue(const char * arg);
 jvalue convertToJValue(bool arg);
 jvalue convertToJValue(unsigned char arg);
@@ -178,7 +103,7 @@ jvalue convertToJValue(int64_t arg);
 jvalue convertToJValue(jobject arg);
 
 jstring toJString(const char *s);
-jstring toJString(std::string& s);
+jstring toJString(const std::string& s);
 
 inline std::string jStringToString(jstring s) {
     if (s == nullptr) return "";
@@ -197,30 +122,133 @@ inline char * jStringToCharPtr(jstring s) {
 	return r;
 }
 
-
-
-inline void gatherArgs(vector<jvalue>& javaArgs) {
-}
+template <typename... Args>
+struct GatherArguments;
 
 template <typename ArgType, typename... Args>
-void gatherArgs(vector<jvalue>& javaArgs, ArgType arg1, Args... remainingArgs) {
-	jvalue jarg1 = convertToJValue(arg1);
-	javaArgs.push_back(jarg1);
-	gatherArgs(javaArgs, remainingArgs...);
-}
+struct GatherArguments<ArgType, Args...> {
+    static void gather(vector<jvalue> &javaArgs, typename JniTypeMapping<ArgType>::actualCppType arg1, typename JniTypeMapping<Args>::actualCppType ...remainingArgs) {
+        jvalue jarg1 = convertToJValue(ToJavaConverter<ArgType>::convertToJava(arg1));
+        javaArgs.push_back(jarg1);
+        GatherArguments<Args...>::gather(javaArgs, remainingArgs...);
+    }
+};
 
+template <>
+struct GatherArguments<> {
+    static void gather(vector<jvalue> &javaArgs) {
+    }
+};
 
-template<> struct CppToJava<std::string>  { typedef jobject type; };
-template<> struct CppToJava<char *> { typedef jobject type; };
-template<> struct CppToJava<bool> { typedef jboolean type; };
-template<> struct CppToJava<unsigned char> { typedef jbyte type; };
-template<> struct CppToJava<char> { typedef jchar type; };
-template<> struct CppToJava<short> { typedef jshort type; };
-template<> struct CppToJava<int> { typedef jint type; };
-template<> struct CppToJava<long> { typedef jlong type; };
-template<> struct CppToJava<long long> { typedef jlong type; };
-template<> struct CppToJava<float> { typedef jfloat type; };
-template<> struct CppToJava<double> { typedef jdouble type; };
+template <typename... Args>
+struct GatherSignature;
+
+template <typename ArgType, typename... Args>
+struct GatherSignature<ArgType, Args...> {
+    static void gather(std::stringstream& signatureBuffer, std::vector<std::string>& argumentTypes, int skipNum) {
+        if (skipNum <= 0) {
+            JniSignature<ArgType> signer;
+            signatureBuffer << signer.signature();
+            argumentTypes.push_back(signer.typeName());
+        }
+        GatherSignature<Args...>::gather(signatureBuffer, argumentTypes, skipNum - 1);
+    }
+};
+
+template <>
+struct GatherSignature<> {
+    static void gather(std::stringstream& signatureBuffer, std::vector<std::string>& argumentTypes, int skipNum) {
+    }
+};
+
+template<> inline std::string JniSignature<void>::signature() { return "V"; }
+template<> inline std::string JniSignature<short>::signature() { return "S"; }
+template<> inline std::string JniSignature<int>::signature() { return "I"; }
+template<> inline std::string JniSignature<long>::signature() { return "J"; }
+
+template<> inline std::string JniSignature<unsigned char>::signature() { return "B"; }
+template<> inline std::string JniSignature<char>::signature() { return "C"; }
+
+template<> inline std::string JniSignature<float>::signature() { return "F"; }
+template<> inline std::string JniSignature<double>::signature() { return "D"; }
+
+template<> inline std::string JniSignature<bool>::signature() { return "Z"; }
+
+template<> inline std::string JniSignature<char *>::signature() { return "Ljava/lang/String;"; }
+template<> inline std::string JniSignature<const char *>::signature() { return "Ljava/lang/String;"; }
+template<> inline std::string JniSignature<std::string>::signature() { return "Ljava/lang/String;"; }
+template<> inline std::string JniSignature<const std::string&>::signature() { return "Ljava/lang/String;"; }
+
+template<> inline std::string JniSignature<jobject>::signature() { return "Ljava/lang/Object;"; }
+
+template<> inline std::string JniSignature<void>::typeName() { return "void"; }
+template<> inline std::string JniSignature<short>::typeName() { return "short"; }
+template<> inline std::string JniSignature<int>::typeName() { return "int"; }
+template<> inline std::string JniSignature<long>::typeName() { return "long"; }
+
+template<> inline std::string JniSignature<unsigned char>::typeName() { return "byte"; }
+template<> inline std::string JniSignature<char>::typeName() { return "char"; }
+
+template<> inline std::string JniSignature<float>::typeName() { return "float"; }
+template<> inline std::string JniSignature<double>::typeName() { return "double"; }
+
+template<> inline std::string JniSignature<bool>::typeName() { return "boolean"; }
+
+template<> inline std::string JniSignature<char *>::typeName() { return "java.lang.String"; }
+template<> inline std::string JniSignature<const char *>::typeName() { return "java.lang.String"; }
+template<> inline std::string JniSignature<std::string>::typeName() { return "java.lang.String"; }
+template<> inline std::string JniSignature<const std::string&>::typeName() { return "java.lang.String"; }
+
+template<> inline std::string JniSignature<jobject>::typeName() { return "java.lang.Object"; }
+
+template<> struct JniTypeMapping<std::string> { 
+    using jniType = jobject; 
+    using actualCppType = std::string;
+};
+template<> struct JniTypeMapping<const char *> {
+    using jniType = jobject;
+    using actualCppType = const char *;
+};
+template<> struct JniTypeMapping<char *> {
+    using jniType = jobject;
+    using actualCppType = char *;
+};
+template<> struct JniTypeMapping<bool> {
+    using jniType = jboolean;
+    using actualCppType = bool;
+};
+template<> struct JniTypeMapping<unsigned char> {
+    using jniType = jbyte;
+    using actualCppType = unsigned char;
+};
+template<> struct JniTypeMapping<char> {
+    using jniType = jchar;
+    using actualCppType = char;
+};
+template<> struct JniTypeMapping<short> {
+    using jniType = jshort;
+    using actualCppType = short;
+};
+template<> struct JniTypeMapping<int> {
+    using jniType = jint;
+    using actualCppType = int;
+};
+template<> struct JniTypeMapping<long> {
+    using jniType = jlong;
+    using actualCppType = long;
+};
+template<> struct JniTypeMapping<long long> {
+    using jniType = jlong;
+    using actualCppType = long long;
+};
+template<> struct JniTypeMapping<float> {
+    using jniType = jfloat;
+    using actualCppType = float;
+};
+template<> struct JniTypeMapping<double> {
+    using jniType = jdouble;
+    using actualCppType = double;
+};
 
 template<> struct JavaToArray<jboolean> { typedef jbooleanArray type; };
 template<> struct JavaToArray<jbyte> { typedef jbyteArray type; };
@@ -231,115 +259,94 @@ template<> struct JavaToArray<jlong> { typedef jlongArray type; };
 template<> struct JavaToArray<jfloat> { typedef jfloatArray type; };
 template<> struct JavaToArray<jdouble> { typedef jdoubleArray type; };
 
-template <typename CppType>
-template <typename JavaType>
-typename Actualized<CppType>::type ToCppConverter<CppType>::convertToCpp(JavaType val) {
-    return CppType(val);
-}
-
-template <>
 template <>
 inline std::string ToCppConverter<std::string>::convertToCpp(jobject val) {
 	std::string result = jStringToString(static_cast<jstring>(val));
 	env()->DeleteLocalRef(val);
 	return result;
 }
-
 template <>
+inline const char * ToCppConverter<const char *>::convertToCpp(jobject val) {
+    char * result = jStringToCharPtr(static_cast<jstring>(val));
+    env()->DeleteLocalRef(val);
+    return result;
+}
 template <>
 inline char * ToCppConverter<char *>::convertToCpp(jobject val) {
     char * result = jStringToCharPtr(static_cast<jstring>(val));
     env()->DeleteLocalRef(val);
     return result;
 }
-
 template <>
-template <>
-inline const char * ToCppConverter<const char *>::convertToCpp(jobject val) {
-    const char * result = jStringToCharPtr(static_cast<jstring>(val));
-    env()->DeleteLocalRef(val);
-    return result;
+inline jchar ToJavaConverter<char>::convertToJava(char val) {
+    return jchar(val);
 }
-
-template <typename JavaType>
-template <typename CppType>
-JavaType ToJavaConverter<JavaType>::convertToJava(CppType val) {
-    return JavaType(val);
-}
-
 template <>
-template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(std::string val) {
+inline jobject ToJavaConverter<std::string>::convertToJava(std::string val) {
     return toJString(val);
 }
-
 template <>
-template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(const char * val) {
+inline jobject ToJavaConverter<char *>::convertToJava(char * val) {
     return toJString(val);
 }
-
 template <>
-template <>
-inline jobject ToJavaConverter<jobject>::convertToJava(char * val) {
+inline jobject ToJavaConverter<const char *>::convertToJava(const char * val) {
     return toJString(val);
 }
 
 
-template <typename DeclaredReturnType>
-struct Actualizer {
-    static typename Actualized<DeclaredReturnType>::type passThroughOrConvert(typename Actualized<DeclaredReturnType>::type returnValue, JniLocalReferenceScope& refs);
+// Default implementation which just passes the value through unchanged.  Used for everything other than jobject/jlocal/jglobal/jarray/jobjectarray.
+template <typename ActualReturnType, bool global>
+struct JvmObjectPassThrough {
+    static ActualReturnType pass(ActualReturnType returnValue, JniLocalReferenceScope& refs) {
+        return returnValue;
+    }
 };
 
 //
-// Default implementation which just passes the value through unchanged.  Used for everything other than jobject/jlocal/jglobal/jarray/jobjectarray.
-//
-template <typename DeclaredReturnType>
-inline typename Actualized<DeclaredReturnType>::type Actualizer<DeclaredReturnType>::passThroughOrConvert(typename Actualized<DeclaredReturnType>::type returnValue, JniLocalReferenceScope& refs) {
-    return returnValue;
-}
-
-//
-// A jglobal return value has been specified, convert the local reference jobject into a global
+// If a global return value has been specified, convert the local reference jobject into a global
 // reference jobject and return it.
 //
-template <>
-inline jobject Actualizer<jglobal>::passThroughOrConvert(jobject returnValue, JniLocalReferenceScope& refs) {
-	if (env()->IsSameObject(returnValue, nullptr)) {
-		return nullptr;
-	}
-    jobject globalVal = env()->NewGlobalRef(returnValue);
-    env()->DeleteLocalRef(returnValue);
-    return globalVal;
-}
+// Otherwise, unlike a global reference, it doesn't need to be converted however since it is a local
+// object, when the JNI frame is popped, it will no longer be valid.  Pop the frame early and pass the
+// reference through to get a new reference in the old frame to the same Java object.
+//
+template<bool global>
+struct JvmObjectPassThrough<jobject, global> {
+    static jobject pass(jobject returnValue, JniLocalReferenceScope &refs) {
+        if (env()->IsSameObject(returnValue, nullptr)) {
+            return nullptr;
+        }
+        if (global) {
+            jobject globalVal = env()->NewGlobalRef(returnValue);
+            env()->DeleteLocalRef(returnValue);
+            return globalVal;
+        } else {
+            return refs.releaseLocalRefs(returnValue);
+        }
+    }
+};
 
-//
-// A jlocal (or jobject as they are the same) return value has been specified.  Unlike a global
-// reference, it doesn't need to be converted however since it is a local object, when the JNI
-// frame is popped, it will no longer be valid.  Pop the frame early and pass the reference
-// through to get a new reference in the old frame to the same Java object.
-//
-template <>
-inline jobject Actualizer<jlocal>::passThroughOrConvert(jobject returnValue, JniLocalReferenceScope& refs) {
-	if (env()->IsSameObject(returnValue, nullptr)) {
-		return nullptr;
-	}
-    return refs.releaseLocalRefs(returnValue);
-}
-template <>
-inline jobjectArray Actualizer<jobjectArray>::passThroughOrConvert(jobjectArray returnValue, JniLocalReferenceScope& refs) {
-	if (env()->IsSameObject(returnValue, nullptr)) {
-		return nullptr;
-	}
-    return static_cast<jobjectArray>(refs.releaseLocalRefs(returnValue));
-}
-template <>
-inline jarray Actualizer<jarray>::passThroughOrConvert(jarray returnValue, JniLocalReferenceScope& refs) {
-	if (env()->IsSameObject(returnValue, nullptr)) {
-		return nullptr;
-	}
-    return static_cast<jarray>(refs.releaseLocalRefs(returnValue));
-}
+template<bool global>
+struct JvmObjectPassThrough<jobjectArray, global> {
+    static jobjectArray pass(jobjectArray returnValue, JniLocalReferenceScope &refs) {
+        if (env()->IsSameObject(returnValue, nullptr)) {
+            return nullptr;
+        }
+        return static_cast<jobjectArray>(refs.releaseLocalRefs(returnValue));
+    }
+};
+
+template<bool global>
+struct JvmObjectPassThrough<jarray, global> {
+    static jarray pass(jarray returnValue, JniLocalReferenceScope &refs) {
+        if (env()->IsSameObject(returnValue, nullptr)) {
+            return nullptr;
+        }
+        return static_cast<jarray>(refs.releaseLocalRefs(returnValue));
+    }
+};
+
 
 
 } // namespace jni_pp
