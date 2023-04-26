@@ -12,7 +12,9 @@ add_custom_target(
         COMMAND ${CMAKE_COMMAND} -E rm -rf swig-java
 )
 
-add_executable(LibJniPP_Tests_run
+add_executable(JniPP_Tests
+#        swig-cxx/TestJAVA_wrap.cxx
+#        ../../main/cpp/src/JvmNativeImpls.cpp
         BoxedTests.cpp
         ConvertersTests.cpp
         JniMappingTests.cpp
@@ -31,7 +33,7 @@ include(${SWIG_USE_FILE})
 set_property(SOURCE Test.i PROPERTY CPLUSPLUS ON)
 
 # Setup SWIG flags and locations
-set(CMAKE_SWIG_FLAGS -c++ -package "dev.tmich.jnipp.test.swig")
+set(CMAKE_SWIG_FLAGS -addextern -c++ -package "dev.tmich.jnipp.test.swig")
 
 # Export wrapper files to Java, and link with the created C++ library
 swig_add_library(
@@ -58,7 +60,7 @@ set_property(
         TestClass.hpp
 )
 
-target_link_libraries(LibJniPP_Tests_run gtest gtest_main jni++_static testswig ${JAVA_JVM_LIBRARY})
+target_link_libraries(JniPP_Tests gtest gtest_main jni++_static testswig ${JAVA_JVM_LIBRARY})
 
 # After SWIG has generated the new wrappers, remove the old versions (in case there are any
 # that don't exist anymore) and then copy the new ones over.

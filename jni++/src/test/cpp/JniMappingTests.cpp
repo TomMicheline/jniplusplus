@@ -11,12 +11,28 @@
 
 #include "gtest/gtest.h"
 #include "jnipp/JniMapping.hpp"
+#include "jnipp/SwigSupport.hpp"
+#include "jnipp/JvmNativeImpls.hpp"
 #include "JvmTestFixture.hpp"
 #include "TestClass.hpp"
 
 using namespace jni_pp;
 
-Constructor<jobject> jTSCtor("dev.tmich.jnipp.test.TestStructEquiv");
+
+extern "C"
+void JNICALL Java_dev_tmich_jnipp_test_swig_TestJNI_TestStruct_1l_1set(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jint jarg2);
+extern "C"
+jint JNICALL Java_dev_tmich_jnipp_test_swig_TestJNI_TestStruct_1l_1get(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_);
+
+void ForceSwigInclusion() {
+    JNI_OnLoad(nullptr, nullptr);
+    JNI_OnLoad_jniplusplus(nullptr, nullptr);
+    Java_dev_tmich_jnipp_test_swig_TestJNI_TestStruct_1l_1get(nullptr, nullptr, 0, nullptr);
+    Java_dev_tmich_jnipp_test_swig_TestJNI_TestStruct_1l_1set(nullptr, nullptr, 0, nullptr, 0);
+}
+
+Constructor<JvmObject<"dev.tmich.jnipp.test.TestStructEquiv">> jTSCtor("dev.tmich.jnipp.test.TestStructEquiv");
+Constructor<JvmObject<"dev.tmich.jnipp.test.TestStructEquiv">, SwigMapping<TestStruct, "dev.tmich.jnipp.test.swig.TestStruct">> jTSCtorFromSwig("dev.tmich.jnipp.test.TestStructEquiv");
 InstanceMethod<int> jGetTSInt("dev.tmich.jnipp.test.TestStructEquiv", "getI");
 InstanceMethod<void, int> jSetTSInt("dev.tmich.jnipp.test.TestStructEquiv", "setI");
 InstanceMethod<long> jGetTSLong("dev.tmich.jnipp.test.TestStructEquiv", "getL");
@@ -26,7 +42,6 @@ InstanceMethod<void, char> jSetTSChar("dev.tmich.jnipp.test.TestStructEquiv", "s
 
 typedef JniMapping<TestStruct*, "dev.tmich.jnipp.test.TestStructEquiv"> TestStructMapping;
 template<>
-template<>
 inline TestStruct* ToCppConverter<TestStructMapping>::convertToCpp(jobject val) {
     auto* ts = new TestStruct;
     ts->i = jGetTSInt(val);
@@ -35,13 +50,13 @@ inline TestStruct* ToCppConverter<TestStructMapping>::convertToCpp(jobject val) 
     return ts;
 }
 template<>
-template<>
 inline jobject ToJavaConverter<TestStructMapping>::convertToJava(TestStruct* value) {
+    JniLocalReferenceScope ref;
     jobject tse = jTSCtor();
     jSetTSInt(tse, value->i);
     jSetTSLong(tse, value->l);
     jSetTSChar(tse, value->c);
-    return tse;
+    return JvmObjectPassThrough<jobject, false>::pass(tse, ref);
 }
 
 TEST_F(JvmTestFixture, TestStructEquivTest)
@@ -63,5 +78,10 @@ TEST_F(JvmTestFixture, TestStructEquivTest)
     ASSERT_EQ(char(ts.c*5), ts5->c);
 
     delete ts5;
+
+    StaticMethod<void> jDoLoad("dev.tmich.jnipp.test.LoadJniPlusPlus", "DoLoad");
+    jDoLoad();
+
+    auto fromSwigTS = jTSCtorFromSwig(&ts);
 }
 

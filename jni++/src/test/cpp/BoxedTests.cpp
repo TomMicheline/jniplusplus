@@ -19,7 +19,7 @@ using namespace jni_pp;
 
 
 TEST_F(JvmTestFixture, PrimitiviesBoxedTests) {
-    Constructor<jobject> jCtor("dev.tmich.jnipp.test.TestBoxed");
+    Constructor<JvmObject<"dev.tmich.jnipp.test.TestBoxed">> jCtor("dev.tmich.jnipp.test.TestBoxed");
     jobject instance = jCtor();
 
     //    private Integer i = 7_000_000;

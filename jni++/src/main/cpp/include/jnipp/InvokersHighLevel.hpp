@@ -25,17 +25,20 @@ namespace jni_pp {
 template <typename CppReturnType>
 struct HighLevelInvoker {
     template<typename TargetType>
-    static typename Actualized<CppReturnType>::type
+    static typename JniTypeMapping<CppReturnType>::actualCppType
     invoke(TargetType target, jmethodID methodID, vector <jvalue> &args, JniLocalReferenceScope &refs);
 };
 
 template <typename CppType>
 struct HighLevelAccessor {
-    template <typename TargetType>
-    static typename Actualized<CppType>::type get(TargetType target, jfieldID fieldID, JniLocalReferenceScope& refs);
+    using actualCppType = typename JniTypeMapping<CppType>::actualCppType;
+    using jniType = typename JniTypeMapping<CppType>::jniType ;
 
     template <typename TargetType>
-    static void set(TargetType target, jfieldID fieldID, typename Actualized<CppType>::type value);
+    static actualCppType get(TargetType target, jfieldID fieldID, JniLocalReferenceScope& refs);
+
+    template <typename TargetType>
+    static void set(TargetType target, jfieldID fieldID, actualCppType value);
 };
 
 
@@ -52,13 +55,13 @@ struct HighLevelAccessor {
 
 template <typename CppReturnType>
 template <typename TargetType>
-typename Actualized<CppReturnType>::type HighLevelInvoker<CppReturnType>::invoke(TargetType target, jmethodID methodID, vector<jvalue>& args, JniLocalReferenceScope& refs) {
-    typedef typename Actualized<CppReturnType>::type ActualReturnType;
-    typedef typename CppToJava<CppReturnType>::type JavaReturnType;
-    JavaReturnType javaReturnValue = LowLevelInvoker<JavaReturnType>::invoke(target, methodID, args);
+typename JniTypeMapping<CppReturnType>::actualCppType HighLevelInvoker<CppReturnType>::invoke(TargetType target, jmethodID methodID, vector<jvalue>& args, JniLocalReferenceScope& refs) {
+    using cppType = typename JniTypeMapping<CppReturnType>::actualCppType;
+    using jniType = typename JniTypeMapping<CppReturnType>::jniType;
+    jniType javaReturnValue = LowLevelInvoker<jniType>::invoke(target, methodID, args);
     checkForExceptions();
-    ActualReturnType returnValue = ToCppConverter<CppReturnType>::convertToCpp(javaReturnValue);
-    return Actualizer<CppReturnType>::passThroughOrConvert(returnValue, refs);
+    cppType returnValue = ToCppConverter<CppReturnType>::convertToCpp(javaReturnValue);
+    return JvmObjectPassThrough<cppType, IsGlobalRef<CppReturnType>::value>::pass(returnValue, refs);
 };
 
 
@@ -71,22 +74,19 @@ inline void HighLevelInvoker<void>::invoke(TargetType target, jmethodID methodID
 
 template <typename CppValueType>
 template <typename TargetType>
-typename Actualized<CppValueType>::type HighLevelAccessor<CppValueType>::get(TargetType target, jfieldID fieldID, JniLocalReferenceScope& refs) {
-    typedef typename Actualized<CppValueType>::type ActualReturnType;
-    typedef typename CppToJava<CppValueType>::type JavaReturnType;
-    JavaReturnType javaReturnValue = LowLevelAccessor<JavaReturnType>::get(target, fieldID);
+typename JniTypeMapping<CppValueType>::actualCppType HighLevelAccessor<CppValueType>::get(TargetType target, jfieldID fieldID, JniLocalReferenceScope& refs) {
+    jniType javaReturnValue = LowLevelAccessor<jniType>::get(target, fieldID);
     checkForExceptions();
-    ActualReturnType returnValue = ToCppConverter<CppValueType>::convertToCpp(javaReturnValue);
-    return Actualizer<CppValueType>::passThroughOrConvert(returnValue, refs);
+    actualCppType returnValue = ToCppConverter<CppValueType>::convertToCpp(javaReturnValue);
+    return JvmObjectPassThrough<actualCppType, IsGlobalRef<CppValueType>::value>::pass(returnValue, refs);
 }
 
 
 template <typename CppValueType>
 template <typename TargetType>
-void HighLevelAccessor<CppValueType>::set(TargetType target, jfieldID fieldID, typename Actualized<CppValueType>::type value) {
-    typedef typename CppToJava<CppValueType>::type JavaValueType;
-    JavaValueType javaValue = ToJavaConverter<CppValueType>::template convertToJava<JavaValueType>(value);
-    LowLevelAccessor<JavaValueType>::set(target, fieldID, javaValue);
+void HighLevelAccessor<CppValueType>::set(TargetType target, jfieldID fieldID, typename JniTypeMapping<CppValueType>::actualCppType value) {
+    jniType javaValue = ToJavaConverter<CppValueType>::convertToJava(value);
+    LowLevelAccessor<jniType>::set(target, fieldID, javaValue);
     checkForExceptions();
 }
 

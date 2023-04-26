@@ -31,6 +31,9 @@ public class JavaToNativeExporter {
     public static void setLog(JniLogger log) {
         JavaToNativeExporter.log = log;
     }
+    public static JniLogger getLog() {
+        return log;
+    }
 
     // Configure packages which do or don't require ExportToNative.  By default, classes and
     // their members do not require it.  If you configure a package here, either to require

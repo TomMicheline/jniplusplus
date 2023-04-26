@@ -19,6 +19,10 @@
 //
 
 extern "C"
+JNIEXPORT jint JNICALL
+JNI_OnLoad_jniplusplus(JavaVM *vm, void *reserved);
+
+extern "C"
 JNIEXPORT void JNICALL
 Java_dev_tmich_jnipp_JavaToNativeExporter_registerSingleton(JNIEnv *env, jclass clazz, jstring jname, jobject obj);
 

@@ -17,7 +17,9 @@
 
 namespace jni_pp {
 
-std::shared_ptr<JniLogger> gLog = std::make_shared<JniStreamLogger>();
+std::mutex logger_mutex;
+
+std::shared_ptr<JniLogger> gLog;
 LogPriority gMinimumLogLevel = LOG_DEBUG;
 
 void setJavaMinimumLogLevel() {
@@ -38,11 +40,16 @@ LogPriority getMinimumLogLevel() {
 
 void setLogger(std::shared_ptr<JniLogger> logger)
 {
+    std::lock_guard<std::mutex>  lock(logger_mutex);
     gLog = std::move(logger);
 }
 
 std::shared_ptr<JniLogger> getLogger()
 {
+    std::lock_guard<std::mutex>  lock(logger_mutex);
+    if (!gLog) {
+        gLog = std::make_shared<JniStreamLogger>();
+    }
     return gLog;
 }
 

@@ -31,21 +31,21 @@ public class JniPrintStreamLogger implements JniLogger {
     @Override
     public void debug(String msg, Object... args) {
         if (JniLogger.shouldLog(LogLevel.Debug)) {
-            mStream.printf("jni++[D]: " + msg + "%n", args);
+            mStream.printf("jni++ [D]: " + msg + "%n", args);
         }
     }
 
     @Override
     public void warning(String msg, Object... args) {
         if (JniLogger.shouldLog(LogLevel.Warning)) {
-            mStream.printf("jni++[W]: " + msg + "%n", args);
+            mStream.printf("jni++ [W]: " + msg + "%n", args);
         }
     }
 
     @Override
     public void error(String msg, Object... args) {
         if (JniLogger.shouldLog(LogLevel.Error)) {
-            mStream.printf("jni++[E]: " + msg + "%n", args);
+            mStream.printf("jni++ [E]: " + msg + "%n", args);
         }
     }
 }

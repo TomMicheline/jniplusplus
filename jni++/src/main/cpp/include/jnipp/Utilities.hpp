@@ -41,6 +41,15 @@ void setEnv(JNIEnv *env);
 JavaVM *getVM();
 void setVM(JavaVM *vm);
 
+//
+// Set or get the current (default) JVM version.  For shared libraries loaded from the jvm this is the minimum
+// version and should be set before JNI_OnLoad is called (probably from a static context).  For statically linked
+// applications, this is set by createVM and then returned from JNI_OnLoad_jniplusplus and doesn't need to be set
+// separately.
+//
+void setCurrentVersion(jint version);
+jint getCurrentVersion();
+
 bool attachCurrentThread();
 void detachCurrentThread();
 
@@ -75,5 +84,15 @@ const std::string& getPackageBase();
 void setSwigPackage(const std::string& packageName);
 const std::string& getSwigPackage();
 
+inline std::string JvmClassNameToJniSignature(const std::string& className, bool addElAndSemi = true) {
+    std::string classDescriptor;
+    std::replace_copy(className.begin(), className.end(), std::back_inserter<std::string>(classDescriptor), '.', '/');
+
+    if (addElAndSemi) {
+        classDescriptor = std::string("L") + classDescriptor + ";";
+    }
+
+    return classDescriptor;
+}
 
 } // namespace jni_pp

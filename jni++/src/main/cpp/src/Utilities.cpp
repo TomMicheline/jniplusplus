@@ -17,8 +17,7 @@
 #include "JniPlusPlus.hpp"
 #include "jnipp/Utilities.hpp"
 #include "jnipp/References.hpp"
-//#include "jnipp/SwigConverters.hpp"
-//#include "jnipp/SwigMethods.hpp"
+#include "jnipp/JniMapping.hpp"
 
 #pragma GCC diagnostic ignored "-Wformat-security"
 
@@ -26,24 +25,17 @@
 namespace jni_pp {
 
 
-std::mutex WrapperMapper::mutex;
-std::map<std::type_index, const std::string> WrapperMapper::wrapperMap;
-
 void setJavaMinimumLogLevel();
 
 std::recursive_mutex javaEnv_mutex;
 thread_local JNIEnv* envInstancePtr(nullptr);
 
-StaticMethod<bool, jobject> jIsExportable("dev.tmich.jnipp.JavaToNativeExporter",
-                                                "isExportable",
-                                                "(Ljava/lang/reflect/Member;)Z");
-StaticMethod<jobject, std::string, std::string, bool, int> jLookupJavaMember("dev.tmich.jnipp.JavaToNativeExporter",
-                                                                             "lookupJavaMember",
-                                                                             "(Ljava/lang/String;Ljava/lang/String;ZI)Ljava/lang/reflect/AccessibleObject;");
-StaticMethod<jobject, std::string, std::string, bool> jLookupJavaField("dev.tmich.jnipp.JavaToNativeExporter",
-                                                                       "lookupJavaField",
-                                                                       "(Ljava/lang/String;Ljava/lang/String;Z)Ljava/lang/reflect/Field;");
-InstanceMethod<jobject> jGetFieldClass("java/lang/reflect/Field", "getDeclaringClass", "()Ljava/lang/Class;");
+StaticMethod<bool, JvmObject<"java.lang.reflect.Member">> jIsExportable("dev.tmich.jnipp.JavaToNativeExporter", "isExportable");
+StaticMethod<JvmObject<"java.lang.reflect.AccessibleObject">, std::string, std::string, bool, int> jLookupJavaMember("dev.tmich.jnipp.JavaToNativeExporter",
+                                                                             "lookupJavaMember");
+StaticMethod<JvmObject<"java.lang.reflect.Field">, std::string, std::string, bool> jLookupJavaField("dev.tmich.jnipp.JavaToNativeExporter",
+                                                                       "lookupJavaField");
+InstanceMethod<JvmObject<"java.lang.Class">> jGetFieldClass("java/lang/reflect/Field", "getDeclaringClass");
 
 
 void setEnv(JNIEnv* env) {
@@ -94,6 +86,15 @@ bool isEnvSetup() {
 JavaVM* GlobalVM;
 std::condition_variable javaVM_cv;
 std::mutex javaVM_mutex;
+jint currentVersion = JNI_VERSION_1_6;
+
+void setCurrentVersion(jint version) {
+    currentVersion = version;
+}
+
+jint getCurrentVersion() {
+    return currentVersion;
+}
 
 bool createVM(jint version, const std::string& classPath)
 {
@@ -108,8 +109,9 @@ bool createVM(jint version, const std::string& classPath)
         JNIEnv * _env;
 
         JavaVMInitArgs vm_args; /* JDK/JRE 6 VM initialization arguments */
-        auto *options = new JavaVMOption[1];
+        auto *options = new JavaVMOption[2];
         options[0].optionString = strdup(("-Djava.class.path=" + classPath).c_str());
+        options[1].optionString = strdup("-verbose:jni");
         // std::cerr << "class path cmd line option = '" << options[0].optionString << "'" << std::endl;
         vm_args.version = version;
         vm_args.nOptions = 1;
@@ -127,6 +129,7 @@ bool createVM(jint version, const std::string& classPath)
             return false;
         }
 
+        setCurrentVersion(version);
         GlobalVM = _vm;
         envInstancePtr = _env;
     }
@@ -242,9 +245,7 @@ jclass getClass(const std::string &name) {
 
     JniLocalReferenceScope  refs; // Clean up any local refs created in this method
 
-    std::string classDescriptor;
-    std::replace_copy(name.begin(), name.end(), std::back_inserter<std::string>(classDescriptor), '.', '/');
-    cls = env()->FindClass(classDescriptor.c_str());
+    cls = env()->FindClass(jni_pp::JvmClassNameToJniSignature(name, false).c_str());
     assertm(cls != nullptr, "Class lookup failed");
 
     auto globalJClass = jclass(env()->NewGlobalRef(cls));
@@ -289,24 +290,32 @@ MethodInfo  *getMethodInfo(const std::string& className, const std::string& meth
         //
         if (!signature.empty()) {
             //
-            // We have a signature so use JNI to lookup the exact method.
+            // We have a signature so use JNI to look up the exact method.
             //
             if (isStatic) {
                 mi->methodID = env()->GetStaticMethodID(mi->class_, methodName.c_str(), signature.c_str());
             } else {
                 mi->methodID = env()->GetMethodID(mi->class_, methodName.c_str(), signature.c_str());
             }
-            assertm(mi->methodID, "methodID lookup failure.  Check signature");
 
-            // We have the method but check to see if it is "exportable."  If a class is in an export required package
-            // it must be annotated with @ExportToNative to be "exportable" UNLESS it is is JavaToNativeExporter which
-            // is always exportable (to prevent an infinite loop/deadlock right here...)
-            if (className != "dev.tmich.jnipp.JavaToNativeExporter") {
-                jobject methodObject = env()->ToReflectedMethod(mi->class_, mi->methodID, jboolean(isStatic));
-                assertm(methodObject, "ToReflectedMethod should not fail");
-                assertm(jIsExportable(methodObject), "Method is not exported!  Annotate with ExportToNative!");
+            if (mi->methodID) {
+                getLogger()->debug("Signature " + signature + " found method for " + className + "." + methodName);
+
+                // We have the method but check to see if it is "exportable."  If a class is in an export required package
+                // it must be annotated with @ExportToNative to be "exportable" UNLESS it is JavaToNativeExporter which
+                // is always exportable (to prevent an infinite loop/deadlock right here...)
+                if (className != "dev.tmich.jnipp.JavaToNativeExporter") {
+                    jobject methodObject = env()->ToReflectedMethod(mi->class_, mi->methodID, jboolean(isStatic));
+                    assertm(methodObject, "ToReflectedMethod should not fail");
+                    assertm(jIsExportable(methodObject), "Method is not exported!  Annotate with ExportToNative!");
+                }
+            } else {
+                getLogger()->warning("Signature " + signature + " DID NOT FIND method for " + className + "." + methodName);
             }
-        } else {
+        }
+
+        // Either there was no signature or the signature didn't match a method
+        if (!mi->methodID) {
             //
             // Have java scan through all the methods looking for the one we want.  All exportability tests are baked in.
             // Returns a Method jobject.  Use JNI to convert to methodID.

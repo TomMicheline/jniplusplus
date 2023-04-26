@@ -69,8 +69,6 @@ set_property(TARGET objlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 add_library(jni++ SHARED $<TARGET_OBJECTS:objlib>)
 add_library(jni++_static STATIC $<TARGET_OBJECTS:objlib>)
 
-add_compile_definitions(USE_CXX_20_NONTYPE_TEMPLATE_PARAMETERS)
-
 target_link_libraries(
         jni++
         ${JAVA_JVM_LIBRARY}

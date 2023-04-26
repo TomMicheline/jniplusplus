@@ -28,6 +28,8 @@
 #include <typeinfo>
 #include <typeindex>
 #include <map>
+#include <sstream>
+#include <iostream>
 
 #include "jnipp/Utilities.hpp"
 #include "jnipp/Converters.hpp"
@@ -79,7 +81,7 @@ public:
     /// type specific invocation logic.
     /// @param args The arguments to pass to the JVM method
     /// @return The value returned by the JVM method, converted to the ReturnType C++ type.
-	typename Actualized<ReturnType>::type operator()(typename Actualized<Args>::type ...args);
+	typename JniTypeMapping<ReturnType>::actualCppType operator()(typename JniTypeMapping<Args>::actualCppType ...args);
 
 protected:
 
@@ -97,9 +99,26 @@ protected:
     /// @param isStatic Is this a static method
     /// @param numReservedParameters How many parameters are used by the implementation and not passed to the JVM method.  Generally, 0 or 1 depending
     /// on if there is an instance object being passed in as the first parameter.
-    Method(const std::string& className, const std::string& methodName, const std::string& signature, int numReservedParameters) :
+    Method(const std::string& className, const std::string& methodName, const std::string& signature, const std::string& returnSignature, int numReservedParameters) :
             givenClassName(className), methodName(methodName), methodSignature(signature), numReservedParameters(numReservedParameters)
     {
+        std::stringstream sigbuf{};
+        std::vector<std::string> returnType;
+
+        sigbuf << "(";
+        GatherSignature<Args...>::gather(sigbuf, parameterJniTypeNames, numReservedParameters);
+        sigbuf << ")";
+        if (returnSignature.empty()) {
+            GatherSignature<ReturnType>::gather(sigbuf, returnType, 0);
+        } else {
+            sigbuf << returnSignature;
+        }
+        computedSignature = sigbuf.str();
+        if (methodSignature.empty()) {
+            methodSignature = computedSignature;
+        }
+
+        getLogger()->debug( "Signature for " + className + "." + methodName + ": " + computedSignature );
     }
 
     /// @brief Invoke the refered to JVM method with the given arguments and return the converted results.
@@ -108,7 +127,7 @@ protected:
     /// @param javaArgs
     /// @param refs
     /// @return
-    virtual typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) = 0;
+    virtual typename JniTypeMapping<ReturnType>::actualCppType invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) = 0;
 
 private:
     static const std::string calculateClassName(const std::string& given) {
@@ -127,7 +146,11 @@ private:
 protected:
     const std::string givenClassName;
     const std::string methodName;
-    const std::string methodSignature;
+
+    std::string methodSignature;
+    std::string computedSignature;
+    std::vector<std::string> parameterJniTypeNames;
+
     int numParameters;
     int numReservedParameters;
 
@@ -146,7 +169,7 @@ public:
     typedef Method<ReturnType, Args...> Base;
     using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
-	StaticMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") : Method<ReturnType, Args...>(className, methodName, signature, 0) {}
+	StaticMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") : Method<ReturnType, Args...>(className, methodName, signature, "", 0) {}
 	virtual ~StaticMethod() {}
 
 protected:
@@ -154,7 +177,7 @@ protected:
         return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, true, numParameters);
     }
 
-    typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
+    typename JniTypeMapping<ReturnType>::actualCppType invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
 
@@ -167,7 +190,7 @@ public:
     using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
 	InstanceMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") :
-        Method<ReturnType, jobject, Args...>(className, methodName, signature, 1)
+        Method<ReturnType, jobject, Args...>(className, methodName, signature, "", 1)
         {}
 	virtual ~InstanceMethod() {}
 
@@ -176,7 +199,7 @@ protected:
         return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, false, numParameters);
     }
 
-    typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
+    typename JniTypeMapping<ReturnType>::actualCppType invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
 template <typename ReturnType, typename... Args>
@@ -187,7 +210,7 @@ public:
     using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
     SingletonMethod(const std::string& className, const std::string& methodName, const std::string& signature = "") :
-        Method<ReturnType, Args...>(className, methodName, signature, 0)
+        Method<ReturnType, Args...>(className, methodName, signature, "", 0)
         {}
     virtual ~SingletonMethod() {}
 
@@ -196,7 +219,7 @@ protected:
         return  jni_pp::getMethodInfo(getClassName(), methodName, methodSignature, false, numParameters);
     }
 
-    typename Actualized<ReturnType>::type invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
+    typename JniTypeMapping<ReturnType>::actualCppType invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs);
 };
 
 template <typename ReturnType, typename... Args>
@@ -206,7 +229,7 @@ public:
 	typedef Method<ReturnType, Args...> Base;
     using Base::getClassName, Base::getMethodInfo, Base::methodName, Base::methodSignature, Base::numParameters;
 
-	Constructor(const std::string& className, const std::string& signature = "") : Method<ReturnType, Args...>(className, "<init>", signature, 0) {}
+	Constructor(const std::string& className, const std::string& signature = "") : Method<ReturnType, Args...>(className, "<init>", signature, "V", 0) {}
 	virtual ~Constructor() {}
 
 protected:
@@ -255,8 +278,8 @@ public:
     }
     ~InstanceField() {}
 
-    typename Actualized<FieldType>::type get(jobject object);
-    void set(jobject object, typename Actualized<FieldType>::type value);
+    typename JniTypeMapping<FieldType>::actualCppType get(jobject object);
+    void set(jobject object, typename JniTypeMapping<FieldType>::actualCppType value);
 };
 
 template <typename FieldType>
@@ -272,8 +295,8 @@ public:
         {}
     ~SingletonField() {}
 
-    typename Actualized<FieldType>::type get();
-    void set(typename Actualized<FieldType>::type value);
+    typename JniTypeMapping<FieldType>::actualCppType get();
+    void set(typename JniTypeMapping<FieldType>::actualCppType value);
 };
 
 template <typename FieldType>
@@ -287,8 +310,8 @@ public:
     }
     ~StaticField() {}
 
-    typename Actualized<FieldType>::type get();
-    void set(typename Actualized<FieldType>::type value);
+    typename JniTypeMapping<FieldType>::actualCppType get();
+    void set(typename JniTypeMapping<FieldType>::actualCppType value);
 };
 
 
@@ -297,7 +320,7 @@ class PrimitiveArray {
 public:
     static_assert(std::is_arithmetic<CppElementType>::value, "PrimitiveArrays only supports primitive Java types.  Use ObjectArray for non-primitives.");
 
-    typedef typename CppToJava<CppElementType>::type JavaType;
+    using JavaType = typename JniTypeMapping<CppElementType>::jniType;
     typedef typename JavaToArray<JavaType>::type ArrayType;
 
     template <typename ReturnType>
@@ -340,9 +363,9 @@ public:
     template <typename ReturnType>
     jobjectArray create(int size, jobject initialElement = nullptr);
 
-    typename Actualized<CppElementType>::type get(jobjectArray array, int index);
+    typename JniTypeMapping<CppElementType>::actualCppType get(jobjectArray array, int index);
 
-    void set(jobjectArray array, int index, typename Actualized<CppElementType>::type value);
+    void set(jobjectArray array, int index, typename JniTypeMapping<CppElementType>::actualCppType value);
 
 private:
     const std::string className;
@@ -360,12 +383,12 @@ private:
 //#################################################################################################
 
 template <typename ReturnType, typename... Args>
-typename Actualized<ReturnType>::type StaticMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
+typename JniTypeMapping<ReturnType>::actualCppType StaticMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
     return HighLevelInvoker<ReturnType>::invoke(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs, refs);
 }
 
 template <typename ReturnType, typename... Args>
-typename Actualized<ReturnType>::type InstanceMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
+typename JniTypeMapping<ReturnType>::actualCppType InstanceMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
     jvalue jv = javaArgs.front();
     jobject object = jv.l;
     javaArgs.erase(javaArgs.begin(), javaArgs.begin() + 1);
@@ -373,7 +396,7 @@ typename Actualized<ReturnType>::type InstanceMethod<ReturnType, Args...>::invok
 }
 
 template <typename ReturnType, typename... Args>
-typename Actualized<ReturnType>::type SingletonMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
+typename JniTypeMapping<ReturnType>::actualCppType SingletonMethod<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
     // Don't ever cache the singleton object.  It might change...
     jobject object = getSingletonObject(getClassName());
     if (!object) {
@@ -384,12 +407,13 @@ typename Actualized<ReturnType>::type SingletonMethod<ReturnType, Args...>::invo
 
 template <typename ReturnType, typename... Args>
 jobject Constructor<ReturnType, Args...>::invoke(vector<jvalue>& javaArgs, JniLocalReferenceScope& refs) {
-    return Actualizer<ReturnType>::passThroughOrConvert(env()->NewObjectA(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs.data()), refs);
+    using actualReturnType = typename JniTypeMapping<ReturnType>::actualCppType;
+    return JvmObjectPassThrough<actualReturnType, IsGlobalRef<ReturnType>::value>::pass(env()->NewObjectA(getMethodInfo()->class_, getMethodInfo()->methodID, javaArgs.data()), refs);
 }
 
 
 template <typename ReturnType, typename... Args>
-typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(typename Actualized<Args>::type ...args) {
+typename JniTypeMapping<ReturnType>::actualCppType Method<ReturnType, Args...>::operator ()(typename JniTypeMapping<Args>::actualCppType ...args) {
     numParameters = sizeof...(args) - numReservedParameters;
     vector<jvalue> javaArgs;
     javaArgs.reserve(numParameters + numReservedParameters);
@@ -398,7 +422,7 @@ typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(t
     // Use JniLocalReferenceScope to push a new JNI frame so that all local references will be cleaned up.  If ReturnType is jobject,
     // however, we need to pass in the returned java object to get a new reference in the old frame.  Pass refs into the
     // subclass invoke, which passes it to the HighLeverInvoker, which (if this isn't a void return Method) passes it into
-    // the Actualizer which will, for a jobject, pop the frame early and pass the jobject return value to get a reference
+    // the JvmObjectPassThrough which will, for a jobject, pop the frame early and pass the jobject return value to get a reference
     // that will still be valid in the calling frame.
     //
     JniLocalReferenceScope refs(numParameters + numReservedParameters + 1);
@@ -407,19 +431,19 @@ typename Actualized<ReturnType>::type Method<ReturnType, Args...>::operator ()(t
 }
 
 template <typename FieldType>
-typename Actualized<FieldType>::type InstanceField<FieldType>::get(jobject object) {
+typename JniTypeMapping<FieldType>::actualCppType InstanceField<FieldType>::get(jobject object) {
     JniLocalReferenceScope refs;
     return HighLevelAccessor<FieldType>::get(object, getFieldInfo()->fieldID, refs);
 }
 
 template <typename FieldType>
-void InstanceField<FieldType>::set(jobject object, typename Actualized<FieldType>::type value) {
+void InstanceField<FieldType>::set(jobject object, typename JniTypeMapping<FieldType>::actualCppType value) {
     JniLocalReferenceScope refs;
     HighLevelAccessor<FieldType>::set(object, getFieldInfo()->fieldID, value);
 }
 
 template <typename FieldType>
-typename Actualized<FieldType>::type SingletonField<FieldType>::get() {
+typename JniTypeMapping<FieldType>::actualCppType SingletonField<FieldType>::get() {
     JniLocalReferenceScope refs;
     // Don't ever cache the singleton object.  It might change...
     jobject object = getSingletonObject(className);
@@ -428,7 +452,7 @@ typename Actualized<FieldType>::type SingletonField<FieldType>::get() {
 }
 
 template <typename FieldType>
-void SingletonField<FieldType>::set(typename Actualized<FieldType>::type value) {
+void SingletonField<FieldType>::set(typename JniTypeMapping<FieldType>::actualCppType value) {
     JniLocalReferenceScope refs;
     jobject object = getSingletonObject(className);
     if (!object) throw new std::runtime_error(std::string("Singleton ") + className + " not available when referenced by SingletonField.");
@@ -436,13 +460,13 @@ void SingletonField<FieldType>::set(typename Actualized<FieldType>::type value) 
 }
 
 template <typename FieldType>
-typename Actualized<FieldType>::type StaticField<FieldType>::get() {
+typename JniTypeMapping<FieldType>::actualCppType StaticField<FieldType>::get() {
     JniLocalReferenceScope refs;
     return HighLevelAccessor<FieldType>::get(getFieldInfo()->class_, getFieldInfo()->fieldID, refs);
 }
 
 template <typename FieldType>
-void StaticField<FieldType>::set(typename Actualized<FieldType>::type value) {
+void StaticField<FieldType>::set(typename JniTypeMapping<FieldType>::actualCppType value) {
     JniLocalReferenceScope refs;
     HighLevelAccessor<FieldType>::set(getFieldInfo()->class_, getFieldInfo()->fieldID, value);
 }
@@ -452,7 +476,7 @@ template <typename ReturnType>
 typename PrimitiveArray<CppElementType>::ArrayType PrimitiveArray<CppElementType>::create(int size) {
     JniLocalReferenceScope refs;
     ArrayType array = LowLevelAccessor<JavaType>::createJavaArray(size);
-    return static_cast<ArrayType>(Actualizer<ReturnType>::passThroughOrConvert(array, refs));
+    return static_cast<ArrayType>(JvmObjectPassThrough<ReturnType, false>::pass(array, refs));
 }
 
 template <typename CppElementType>
@@ -460,7 +484,7 @@ template <typename ReturnType>
 jobjectArray ObjectArray<CppElementType>::create(int size, jobject initialElement) {
     JniLocalReferenceScope refs;
     jarray array = env()->NewObjectArray(size, getClass(), initialElement);
-    return static_cast<jobjectArray>(Actualizer<ReturnType>::passThroughOrConvert(array, refs));
+    return static_cast<jobjectArray>(JvmObjectPassThrough<ReturnType, false>::pass(array, refs));
 }
 
 
@@ -529,16 +553,16 @@ int PrimitiveArray<CppElementType>::size(ArrayType array) {
 }
 
 template <typename CppElementType>
-typename Actualized<CppElementType>::type ObjectArray<CppElementType>::get(jobjectArray array, int index) {
-    typedef typename Actualized<CppElementType>::type ReturnType;
+typename JniTypeMapping<CppElementType>::actualCppType ObjectArray<CppElementType>::get(jobjectArray array, int index) {
+    using actualReturnType = typename JniTypeMapping<CppElementType>::actualCppType;
     JniLocalReferenceScope refs;
     jobject javaReturn =  env()->GetObjectArrayElement(array, index);
-    ReturnType value = ToCppConverter<ReturnType>::convertToCpp(javaReturn);
-    return Actualizer<CppElementType>::passThroughOrConvert(value, refs);
+    actualReturnType value = ToCppConverter<actualReturnType>::convertToCpp(javaReturn);
+    return JvmObjectPassThrough<actualReturnType, IsGlobalRef<CppElementType>::value>::pass(value, refs);
 }
 
 template <typename CppElementType>
-void ObjectArray<CppElementType>::set(jobjectArray array, int index, typename Actualized<CppElementType>::type  value) {
+void ObjectArray<CppElementType>::set(jobjectArray array, int index, typename JniTypeMapping<CppElementType>::actualCppType  value) {
     JniLocalReferenceScope refs;
     jobject javaValue = convertToJValue(value);
     env()->SetObjectArrayElement(array, index, javaValue);
